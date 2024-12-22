@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  height: 100vh;
 }
 
 .App-logo {
@@ -35,4 +36,18 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.loginform {
+  width: fit-content;
+  padding: 100px;
+  border: #282c34 3px solid;
+  display: flex;
+  flex-direction:column;
+  margin: auto auto;
+}
+
+.loginform input, button {
+  width: fit-content;
+  margin: 8px auto;
 }
