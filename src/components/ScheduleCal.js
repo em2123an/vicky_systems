@@ -10,18 +10,17 @@ import listPlugin from '@fullcalendar/list'
 //import 'bootstrap/dist/css/bootstrap.css';
 //import '@fortawesome/fontawesome-free/css/all.css';
 import React from 'react'
-import PatientRegForm from './PatientRegForm'
 
-export default function ScheduleCal({isRegistering, setIsRegistering}){
-    const [events, setEvents] = React.useState([])
+export default function ScheduleCal({isRegistering, setIsRegistering, events, setEvents}){
+    
     
     function handleClick(info, title){
-        setEvents((prev)=>([...prev,{
+        setIsRegistering({
             start: info.startStr,
             end : info.endStr,
-            title : `Appointment: ${title}`
-        }]))
-        setIsRegistering(true)
+            title : `Appointment: ${title}`,
+            editable : true
+        })
     }
 
     return <FullCalendar height={'100vh'}

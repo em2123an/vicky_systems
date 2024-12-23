@@ -1,10 +1,13 @@
-import { Autocomplete, Box, IconButton, List, ListItem, ListItemText, TextField, Typography } from "@mui/material";
-import DeleteIcon  from '@mui/icons-material/Delete'
+import { Autocomplete, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import {useState} from "react";
 
 export default function PatientRegBooking(){
-    const [selectedService, setSelectedService] = useState(null)
+    //const [selectedService, setSelectedService] = useState(null)
     const [listSelectedServices, setListSelectedServices] = useState([])
+    
+    function invoiceTotal(){
+        return listSelectedServices.reduce((accumulater, curr)=>accumulater + parseFloat(curr.price),0)
+    }
 
     var MRISERVICEOPTIONS = [
         {title:'Cervical MRI', price:'7800', side: false},
@@ -25,41 +28,62 @@ export default function PatientRegBooking(){
         {title:'Wrist MRI', price:'7300', side: true},
     ]
 
+    function optionGen(services,selectedToBeNotIncluded){
+        var fullservices = services.flatMap((value)=>{
+            if(value.side){
+                return [{...value,title:`Right ${value.title}`},{...value,title:`Left ${value.title}`}]
+                }
+            return value
+            })
+        if(selectedToBeNotIncluded.length === 0){return fullservices}
+        else{
+            return fullservices.filter((service)=>{
+                var filt = true
+                selectedToBeNotIncluded.forEach(element => {
+                    if(element.title === service.title){filt = false}
+                });
+                return filt
+            })
+        }
+    }
+
     return (
         <Box sx={{display:'flex', flexDirection:'column', alignItems:'flex-start', width:'fit-content', padding:'24px', border:1, borderRadius:'8px'}}>
-            <Typography variant="h5" textAlign={'start'}>Booking Details</Typography>
-            {listSelectedServices && <List>
-                {listSelectedServices.map((value, index, oldArr)=>{
-                    return (<ListItem secondaryAction={
-                        <IconButton edge='end' aria-label="delete-icon" onClick={()=>{
-                            oldArr.splice(index,1)
-                            setListSelectedServices(oldArr)
-                        }}>
-                            <DeleteIcon/>
-                        </IconButton>
-                    }>
-                                <ListItemText primary={`${value.title} - ${value.price}`}/>
-                            </ListItem>)
+            <Typography variant="h5" textAlign={'start'} sx={{marginBottom:1}}>Booking Details</Typography>
+                {listSelectedServices.length !==0 && <TableContainer sx={{marginY:1}}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell colSpan={2}>List of Services</TableCell>
+                                <TableCell>Price</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {listSelectedServices.map((value)=>{
+                                return <TableRow key={value.title}>
+                                    <TableCell colSpan={2}>{value.title}</TableCell>
+                                    <TableCell>{value.price}</TableCell>
+                                </TableRow>
                             })}
-                    </List>}
-            <Autocomplete id="select_service" value={selectedService} 
-                options={MRISERVICEOPTIONS.flatMap((value)=>{
-                    if(value.side){
-                        return [{...value,title:`Right ${value.title}`},{...value,title:`Left ${value.title}`}]
-                        }
-                    return value
-                    })}
-                clearOnBlur
+                            <TableRow>
+                                <TableCell />
+                                <TableCell align="right">Total</TableCell>
+                                <TableCell>{invoiceTotal()}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                    </TableContainer>}
+            <Autocomplete multiple id="select_service" sx={{marginY:1}}
+                options={optionGen(MRISERVICEOPTIONS,listSelectedServices)}
                 getOptionLabel={(option)=>option.title}
+                value={listSelectedServices}
                 onChange={(e,newValue,)=>{        
-                            if(newValue!==null){
-                                setListSelectedServices((prevList)=>([...prevList,newValue]))
-                            }
+                    setListSelectedServices((prevList)=>([...newValue]))
                         }}
                 renderInput={(params)=>(
                                 <TextField sx={{width:'500px'}} {...params} label="Select Service"/>
                         )}
                 />
-            </Box>        
+        </Box>        
     )
 }
