@@ -15,7 +15,7 @@ export default function MainPlayground(){
         <div>
             {isRegistering ? 
                 <>
-                    <Stepper activeStep={activeStep}>
+                    <Stepper activeStep={activeStep} sx={{m:1, p:1, marginBottom:2}}>
                         {steps.map((value, index)=>{
                             return (<Step key={value}>
                                         <StepLabel>{value}</StepLabel>

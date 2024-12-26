@@ -42,15 +42,15 @@ export default function PatientRegForm({isRegistering, setIsRegistering, events,
     return (
         <>
             <Container>
-                <Box sx={{display:'flex', flexDirection:'row', justifyContent:'space-between'}}>
-                    <Box component={'form'} onSubmit={formik.handleSubmit} >
+                <Box sx={{display:'flex', flexDirection:'row', justifyContent:'start'}}>
+                    <Box component={'form'} onSubmit={formik.handleSubmit} sx={{marginRight:2}}>
                         <Box sx={{display:'flex', flexDirection:'column', alignItems:'flex-start', width:'fit-content', padding:'24px', border:1, borderRadius:'8px'}}>
                             <Typography variant="h5" textAlign={'start'}>Personal Information</Typography>
                             <Stack direction={'row'} spacing={2} sx={{marginTop:'16px'}}>
                                 <TextField required onBlur={formik.handleBlur} error={formik.touched.firstname && formik.errors.firstname} value={formik.values.firstname} onChange={formik.handleChange} variant="outlined" name="firstname" label='First name' slotProps={{inputLabel:{shrink:true,},}} />
                                 <TextField required onBlur={formik.handleBlur} error={formik.touched.lastname && formik.errors.lastname} value={formik.values.lastname} onChange={formik.handleChange} variant="outlined" name="lastname" label='Last name' slotProps={{inputLabel:{shrink:true,},}}/>
                             </Stack>
-                            <Stack direction={'column'} spacing={0}component={'fieldset'} sx={{marginY:'8px'}}>
+                            <Stack direction={'column'} spacing={0}component={'fieldset'} sx={{marginY:'8px', borderRadius:'5px'}}>
                                 {/** <Typography variant="overline" component={'legend'}>Age</Typography>*/}
                                 <FormControl>
                                     <FormLabel>
@@ -78,38 +78,40 @@ export default function PatientRegForm({isRegistering, setIsRegistering, events,
                             }}>Back</Button>
                         </Stack>
                     </Box>
-                    <FullCalendar height={'100vh'}
-                        plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin, listPlugin]}
-                        initialView='Day'
-                        allDaySlot={false}
-                        weekends = {true}
-                        views={{
-                            Day : {
-                                type : 'timeGrid',
-                                slotDuration : {
-                                    minutes : 20
-                                }
-                            },
-                        }}
-                        buttonText={{
-                            'today':'Today',
-                            'week' : 'Week',
-                            'list': 'Show All'
-                        }}
-                        headerToolbar = {{
-                            left : 'title',
-                            //center : 'title',
-                            right : 'Day,today,prev,next'
-                        }}
-                        events={[...events, curEvents]}
-                        selectable = {true}
-                        select={(info)=>{
-                            setCurEvents((appEvent)=>({...appEvent,start:info.startStr,end:info.endStr}))
-                        }}
-                        eventChange={(changeInfo)=>{
-                            setCurEvents((appEvent)=>({...appEvent,start:changeInfo.event.startStr, end:changeInfo.event.endStr}))
-                        }}
-                        />
+                    <Box sx={{flexGrow:2}}>
+                        <FullCalendar height={'100vh'}
+                            plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin, listPlugin]}
+                            initialView='Day'
+                            allDaySlot={false}
+                            weekends = {true}
+                            views={{
+                                Day : {
+                                    type : 'timeGrid',
+                                    slotDuration : {
+                                        minutes : 20
+                                    }
+                                },
+                            }}
+                            buttonText={{
+                                'today':'Today',
+                                'week' : 'Week',
+                                'list': 'Show All'
+                            }}
+                            headerToolbar = {{
+                                left : 'title',
+                                //center : 'title',
+                                right : 'Day,today,prev,next'
+                            }}
+                            events={[...events, curEvents]}
+                            selectable = {true}
+                            select={(info)=>{
+                                setCurEvents((appEvent)=>({...appEvent,start:info.startStr,end:info.endStr}))
+                            }}
+                            eventChange={(changeInfo)=>{
+                                setCurEvents((appEvent)=>({...appEvent,start:changeInfo.event.startStr, end:changeInfo.event.endStr}))
+                            }}
+                            />
+                    </Box>
                 </Box>
             </Container>
         </>
