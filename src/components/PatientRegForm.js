@@ -9,7 +9,7 @@ import {useFormik} from 'formik'
 import { useState } from 'react'
 import { purple, blue } from '@mui/material/colors'
 
-export default function PatientRegForm({isRegistering, setIsRegistering, events, setEvents}){
+export default function PatientRegForm({isRegistering, setIsRegistering, events, setEvents, listSelectedServices,setListSelectedServices}){
     const [curEvents, setCurEvents] = useState({...isRegistering, backgroundColor: purple[500], borderColor:purple[500]})
     
     const formik = useFormik({
@@ -67,7 +67,7 @@ export default function PatientRegForm({isRegistering, setIsRegistering, events,
                                 <TextField required onBlur={formik.handleBlur} error={formik.touched.mobileno && formik.errors.mobileno} value={formik.values.mobileno} onChange={formik.handleChange} variant="outlined" name="mobileno" label='Mobile Numbner' slotProps={{inputLabel:{shrink:true,}, input:{startAdornment:<InputAdornment position="start">+251</InputAdornment>}}}/>
                             </Stack>
                         </Box>
-                        <PatientRegBooking/>
+                        <PatientRegBooking listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
                         <Stack direction={'row'} spacing={3}>
                             <Button variant="contained" onClick={()=>{
                                 setEvents((prev)=>([...prev,{...curEvents, editable:false, backgroundColor: blue[800], borderColor:blue[800]}]))

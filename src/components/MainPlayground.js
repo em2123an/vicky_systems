@@ -3,11 +3,14 @@ import SchedulerFront from "./SchedulerFront"
 import PatientRegForm from "./PatientRegForm"
 import {Step, StepLabel, Stepper, Button, Stack} from "@mui/material"
 import PatientRegUploader from "./PatientRegUploader"
+import PatientRegPayment from "./PatientRegPayment"
 
 export default function MainPlayground(){
     const [isRegistering, setIsRegistering] = useState(null)
     const [events, setEvents] = useState([])
     const [activeStep, setActiveStep] = useState(0)
+    const [listSelectedServices, setListSelectedServices] = useState([])
+    
     const steps =['Booking Information', 'Necessary Documents', 'Payment Details']
     
     
@@ -23,10 +26,12 @@ export default function MainPlayground(){
                         })}
                     </Stepper>
                     {activeStep===0 ? 
-                        <PatientRegForm isRegistering={isRegistering} setIsRegistering={setIsRegistering} events={events} setEvents={setEvents}/>
+                        <PatientRegForm isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
+                            events={events} setEvents={setEvents} 
+                            listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
                         : activeStep ===1 ?
                         <Stack><PatientRegUploader/></Stack>
-                        : <Stack><Button>Payment</Button></Stack>
+                        : <PatientRegPayment listSelectedServices={listSelectedServices} />
                     }
                     <Stack direction={'row'} spacing={3} p={2}>
                         <Button variant='contained' disabled={activeStep===0} onClick={()=>{

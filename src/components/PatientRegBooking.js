@@ -1,13 +1,11 @@
-import { Autocomplete, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Autocomplete, Box, TextField, Typography } from "@mui/material";
 import {useState} from "react";
+import BookingPaymentCor from "./BookingPaymentCor";
 
-export default function PatientRegBooking(){
+export default function PatientRegBooking({listSelectedServices,setListSelectedServices}){
     //const [selectedService, setSelectedService] = useState(null)
-    const [listSelectedServices, setListSelectedServices] = useState([])
     
-    function invoiceTotal(){
-        return listSelectedServices.reduce((accumulater, curr)=>accumulater + parseFloat(curr.price),0)
-    }
+    
 
     var MRISERVICEOPTIONS = [
         {title:'Cervical MRI', price:'7800', side: false},
@@ -50,35 +48,13 @@ export default function PatientRegBooking(){
     return (
         <Box sx={{display:'flex', flexDirection:'column', alignItems:'flex-start', width:'fit-content', padding:'24px', border:1, borderRadius:'8px'}}>
             <Typography variant="h5" textAlign={'start'} sx={{marginBottom:1}}>Booking Details</Typography>
-                {listSelectedServices.length !==0 && <TableContainer sx={{marginY:1}}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell colSpan={2}>List of Services</TableCell>
-                                <TableCell>Price</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {listSelectedServices.map((value)=>{
-                                return <TableRow key={value.title}>
-                                    <TableCell colSpan={2}>{value.title}</TableCell>
-                                    <TableCell>{value.price}</TableCell>
-                                </TableRow>
-                            })}
-                            <TableRow>
-                                <TableCell />
-                                <TableCell align="right">Total</TableCell>
-                                <TableCell>{invoiceTotal()}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                    </TableContainer>}
+                {listSelectedServices.length !==0 && <BookingPaymentCor isDiscounterOn={false} listSelectedServices={listSelectedServices}/>}
             <Autocomplete multiple id="select_service" sx={{marginY:1}}
                 options={optionGen(MRISERVICEOPTIONS,listSelectedServices)}
                 getOptionLabel={(option)=>option.title}
                 value={listSelectedServices}
                 onChange={(e,newValue,)=>{        
-                    setListSelectedServices((prevList)=>([...newValue]))
+                    setListSelectedServices(()=>([...newValue]))
                         }}
                 renderInput={(params)=>(
                                 <TextField sx={{width:'500px'}} {...params} label="Select Service"/>
