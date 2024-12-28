@@ -1,6 +1,7 @@
 import { styled } from '@mui/material/styles'
-import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Typography, Card, CardHeader, CardMedia } from '@mui/material'
+import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Typography, Card, CardHeader, CardMedia, CardActions, IconButton } from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
+import DeleteIcon from '@mui/icons-material/Delete'
 import {useState} from 'react'
 import {format} from 'date-fns'
 
@@ -60,28 +61,27 @@ export default function PatientRegUploader(){
         </Box>
         <Box>
             {fileUploaded && <List>
-                {fileUploaded.map((value)=>{
-                    var val = <></>
-                    switch (value.file.type) {
-                        case 'application/pdf':
-                            val = <Typography>PDF</Typography>
-                            break;
-                        case 'image/png':
-                            val = <Typography>Image png</Typography>
-                            break
-                        case 'image/jpeg':
-                            val = <Typography>Image jpeg</Typography>
-                            break
-                        case 'image/jpg':
-                            val = <Typography>Image jpg</Typography>
-                            break
-                        default:
-                            break;
-                    }
+                {fileUploaded.map((value, index)=>{
+                    //show image for prescription
+                    //make link for screening and attachment
                     return <ListItem>
                         <Card sx={{width:'64%'}}>
                             <CardHeader title={value.documentUploadType} subheader={format(new Date(Date.now()),'hh:mm:ss (eee) MMM do yyyy')}/>
-                            
+                            <CardMedia
+                                sx={{height:'100px'}}
+                                src={value.file}
+                                />
+                            <CardActions sx={{display:'flex', justifyContent:'end'}}>
+                                <Button variant='outlined' size='small' color='error' startIcon={<DeleteIcon />} onClick={()=>{
+                                        //send the delete command
+                                        //delete the document
+                                        setFileUploaded((prev)=>{
+                                            var newArr = prev
+                                            newArr.splice(index,1)
+                                            return [...newArr]
+                                        })
+                                    }}>Delete</Button>
+                            </CardActions>
                         </Card>
                     </ListItem>
                 })}
