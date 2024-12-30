@@ -8,6 +8,7 @@ import { Box, Button, Container, FormControl, FormLabel, InputAdornment, Stack, 
 import {useFormik} from 'formik'
 import { useState } from 'react'
 import { purple, blue } from '@mui/material/colors'
+import { number, object, string } from 'yup'
 
 export default function PatientRegForm({isRegistering, setIsRegistering, events, setEvents, listSelectedServices,setListSelectedServices}){
     const [curEvents, setCurEvents] = useState({...isRegistering, backgroundColor: purple[500], borderColor:purple[500]})
@@ -21,21 +22,33 @@ export default function PatientRegForm({isRegistering, setIsRegistering, events,
             age_mns:'',
             age_dys:'',
         },
-        validate : (values)=>{
-            const errors = {}
-            if(!values.firstname){
-                errors.firstname = "Required"
-            }
-            if(!values.lastname){
-                errors.lastname = "Required"
-            }
-            if(!values.mobileno){
-                errors.mobileno = "Required"
-            }
-            return errors
-        },
+        validationSchema : object({
+            firstname: string().required("Required"),
+            lastname: string().required("Required"),
+            mobileno: string().matches(new RegExp('^[0-9]+$')).required("Required"),
+            age_yrs: number().positive().integer(),
+            age_mns: number().positive().integer(),
+            age_dys: number().positive().integer(),
+        }),
+        // validate : (values)=>{
+        //     const errors = {}
+        //     if(!values.firstname){
+        //         errors.firstname = "Required"
+        //     }
+        //     if(!values.lastname){
+        //         errors.lastname = "Required"
+        //     }
+        //     if(!values.mobileno){
+        //         errors.mobileno = "Required"
+        //     }
+        //     return errors
+        // },
+        validateOnChange : true,
         onSubmit : (values)=>{
             alert(JSON.stringify(values,null,2))
+            console.log(JSON.stringify(values,null,2))
+            setEvents((prev)=>([...prev,{...curEvents, editable:false, backgroundColor: blue[800], borderColor:blue[800]}]))
+            setIsRegistering(null)
         }
     })
 
@@ -57,24 +70,44 @@ export default function PatientRegForm({isRegistering, setIsRegistering, events,
                                         <Typography variant="caption" >Age</Typography>
                                     </FormLabel> 
                                     <Stack direction={'row'} spacing={2}>
-                                        <TextField variant="outlined" value={formik.values.age_yrs} onChange={formik.handleChange} name="age_yrs" size="small" sx={{width:'150px'}} slotProps={{input:{endAdornment:<InputAdornment position="end">Year</InputAdornment>}}}/>
-                                        <TextField variant="outlined" value={formik.values.age_mns} onChange={formik.handleChange} name="age_mns" size="small" sx={{width:'150px'}} slotProps={{input:{endAdornment:<InputAdornment position="end">Month</InputAdornment>}}}/>
-                                        <TextField variant="outlined" value={formik.values.age_dys} onChange={formik.handleChange} name="age_dys" size="small" sx={{width:'150px'}} slotProps={{input:{endAdornment:<InputAdornment position="end">Day</InputAdornment>}}}/>
+                                        <TextField variant="outlined" value={formik.values.age_yrs} onChange={(event)=>{
+                                                var reg = new RegExp('^[0-9]*$')
+                                                if(reg.test(event.target.value)){
+                                                    return formik.handleChange(event)
+                                                }}} 
+                                            name="age_yrs" size="small" sx={{width:'150px'}} slotProps={{input:{endAdornment:<InputAdornment position="end">Year</InputAdornment>}}}/>
+                                        <TextField variant="outlined" value={formik.values.age_mns} onChange={(event)=>{
+                                                var reg = new RegExp('^[0-9]*$')
+                                                if(reg.test(event.target.value)){
+                                                    return formik.handleChange(event)
+                                                }}} 
+                                            name="age_mns" size="small" sx={{width:'150px'}} slotProps={{input:{endAdornment:<InputAdornment position="end">Month</InputAdornment>}}}/>
+                                        <TextField variant="outlined" value={formik.values.age_dys} onChange={(event)=>{
+                                                var reg = new RegExp('^[0-9]*$')
+                                                if(reg.test(event.target.value)){
+                                                    return formik.handleChange(event)
+                                                }}} 
+                                            name="age_dys" size="small" sx={{width:'150px'}} slotProps={{input:{endAdornment:<InputAdornment position="end">Day</InputAdornment>}}}/>
                                     </Stack>
                                 </FormControl>
                             </Stack>
                             <Stack direction={'row'} spacing={1} sx={{marginY:'8px'}}>
-                                <TextField required onBlur={formik.handleBlur} error={formik.touched.mobileno && formik.errors.mobileno} value={formik.values.mobileno} onChange={formik.handleChange} variant="outlined" name="mobileno" label='Mobile Numbner' slotProps={{inputLabel:{shrink:true,}, input:{startAdornment:<InputAdornment position="start">+251</InputAdornment>}}}/>
+                                <TextField required onBlur={formik.handleBlur} error={formik.touched.mobileno && formik.errors.mobileno} 
+                                    value={formik.values.mobileno} onChange={(event)=>{
+                                            var reg = new RegExp('^[0-9]*$')
+                                            if(reg.test(event.target.value)){
+                                                return formik.handleChange(event)
+                                            }
+                                        }} 
+                                    variant="outlined" name="mobileno" label='Mobile Numbner' slotProps={{inputLabel:{shrink:true,}, input:{startAdornment:<InputAdornment position="start">+251</InputAdornment>}}}/>
                             </Stack>
                         </Box>
                         <PatientRegBooking listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
                         <Stack direction={'row'} spacing={3}>
-                            <Button variant="contained" onClick={()=>{
-                                setEvents((prev)=>([...prev,{...curEvents, editable:false, backgroundColor: blue[800], borderColor:blue[800]}]))
-                                setIsRegistering(null)
-                            }}>Done</Button>
+                            <Button variant="contained" onClick={formik.handleSubmit}>Done</Button>
                             <Button variant='contained' onClick={()=>{
                                 setIsRegistering(null)
+                                setListSelectedServices([])
                             }}>Back</Button>
                         </Stack>
                     </Box>
