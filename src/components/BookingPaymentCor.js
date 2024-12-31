@@ -15,9 +15,10 @@ export default function BookingPaymentCor({isDiscounterOn, discountPercent=0, li
         return invoiceSubTotal() - discounter(discountPercent)
     }
 
+
     return <>
         {listSelectedServices.length !==0 && <TableContainer sx={{marginY:1}}>
-                    <Table>
+                    <Table sx={isDiscounterOn && {width:'90%'}} size={isDiscounterOn && 'small'}>
                         <TableHead>
                             <TableRow>
                                 <TableCell colSpan={2}>List of Services</TableCell>

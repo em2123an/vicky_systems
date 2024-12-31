@@ -53,7 +53,6 @@ export default function PatientRegForm({isRegistering, setIsRegistering, events,
     })
 
     return (
-        <>
             <Container>
                 <Box sx={{display:'flex', flexDirection:'row', justifyContent:'start'}}>
                     <Box component={'form'} onSubmit={formik.handleSubmit} sx={{marginRight:2}}>
@@ -111,8 +110,8 @@ export default function PatientRegForm({isRegistering, setIsRegistering, events,
                             }}>Back</Button>
                         </Stack>
                     </Box>
-                    <Box sx={{flexGrow:2}}>
-                        <FullCalendar height={'100vh'}
+                    <Box sx={{flexGrow:2, alignSelf:'stretch'}}>
+                        <FullCalendar height={'100%'}
                             plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin, listPlugin]}
                             initialView='Day'
                             allDaySlot={false}
@@ -147,6 +146,5 @@ export default function PatientRegForm({isRegistering, setIsRegistering, events,
                     </Box>
                 </Box>
             </Container>
-        </>
     )
 }

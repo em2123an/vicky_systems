@@ -26,11 +26,11 @@ export default function MainPlayground(){
                         })}
                     </Stepper>
                     {activeStep===0 ? 
-                        <PatientRegForm isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
-                            events={events} setEvents={setEvents} 
-                            listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
+                            <PatientRegForm isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
+                                events={events} setEvents={setEvents} 
+                                listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
                         : activeStep ===1 ?
-                        <Stack><PatientRegUploader/></Stack>
+                            <PatientRegUploader/>
                         : <PatientRegPayment listSelectedServices={listSelectedServices} />
                     }
                     <Stack direction={'row'} spacing={3} p={2}>
