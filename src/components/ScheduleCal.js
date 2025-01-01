@@ -10,17 +10,21 @@ import listPlugin from '@fullcalendar/list'
 //import 'bootstrap/dist/css/bootstrap.css';
 //import '@fortawesome/fontawesome-free/css/all.css';
 import React from 'react'
+import { purple } from '@mui/material/colors'
 
-export default function ScheduleCal({isRegistering, setIsRegistering, events, setEvents}){
+export default function ScheduleCal({setCurEvents, setIsRegistering, events}){
     
     
-    function handleClick(info, title){
-        setIsRegistering({
+    function handleClick(info){
+        setIsRegistering(true)
+        setCurEvents({
             start: info.startStr,
             end : info.endStr,
-            title : `Appointment: ${title}`,
-            editable : true
+            editable : true,
+            backgroundColor: purple[800],
+            borderColor: purple[800]
         })
+
     }
 
     return <FullCalendar height={'100vh'}
@@ -51,10 +55,7 @@ export default function ScheduleCal({isRegistering, setIsRegistering, events, se
         events = {events}
         selectable = {true}
         select={(info)=>{
-            var title = prompt('Give me a title')
-            if (title != null){
-                handleClick(info, title)
-            }
+            handleClick(info)
         }}
     />
 }

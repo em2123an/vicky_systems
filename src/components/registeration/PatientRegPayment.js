@@ -1,6 +1,6 @@
 import { useState } from "react";
 import BookingPaymentCor from "./BookingPaymentCor";
-import { Table, Box, Autocomplete, Stack, TextField, Typography, InputAdornment, Button, Dialog, DialogTitle, DialogActions, DialogContent, FormGroup, FormControl, Radio, FormLabel, RadioGroup, FormControlLabel, TableContainer, TableHead, TableRow, TableCell, TableBody } from "@mui/material";
+import { Table, Box, Autocomplete, Stack, TextField, Typography, InputAdornment, Button, Dialog, DialogTitle, DialogActions, DialogContent, FormControl, Radio, FormLabel, RadioGroup, FormControlLabel, TableContainer, TableHead, TableRow, TableCell, TableBody } from "@mui/material";
 
 export default function PatientRegPayment({listSelectedServices}){
     const [discountPercent, setDiscountPercent] = useState(0)
@@ -10,6 +10,7 @@ export default function PatientRegPayment({listSelectedServices}){
     const [remark, setRemark] = useState()
     const [amount, setAmount] = useState(null)
     const [paymentRecords, setPaymentRecords] = useState([])
+    const [discountRecords, setDiscountRecords] = useState([])
     
     const DISCOUNTERS = ['Dr. 111', 'Owner']
 
@@ -29,10 +30,18 @@ export default function PatientRegPayment({listSelectedServices}){
         handleClosePaymentDialog()
     }
 
+    function handleDiscounts(){
+        if(discountRecords.length === 0){
+            return discountPercent
+        } else{
+            return discountRecords.reduce((accumulator,cur)=>(accumulator + parseFloat(cur.discountPercent)),0)
+        }
+    }
+
     return <>
         <Stack direction={'column'} paddingX={2}>
             <Typography variant="h6" textAlign={'start'}>Charge Details</Typography>
-            <BookingPaymentCor isDiscounterOn={true} discountPercent={discountPercent} listSelectedServices={listSelectedServices}/>
+            <BookingPaymentCor isDiscounterOn={true} discountPercent={handleDiscounts()} listSelectedServices={listSelectedServices}/>
         </Stack>
         <Stack direction={'column'} p={2}>
             <Typography variant="h6" textAlign={'start'}>Discounts</Typography>
@@ -48,7 +57,7 @@ export default function PatientRegPayment({listSelectedServices}){
                 />
                 <TextField variant="outlined" label="Discount Percentage" name="discountpercent" sx={{width:'150px'}}
                     slotProps={{inputLabel:{shrink:true}, input:{endAdornment:<InputAdornment position="end">%</InputAdornment>}}}
-                    disabled = {discounter === null}
+                    disabled = {discounter === null }
                     value={discountPercent} onChange={(event)=>{
                         var reg = new RegExp('^[0-9]*$')
                         var value = event.target.value
@@ -57,8 +66,36 @@ export default function PatientRegPayment({listSelectedServices}){
                                 return setDiscountPercent(value)
                             }
                         }}} />
+                <Button variant="outlined" disabled={discounter==null} onClick={()=>{
+                        setDiscountRecords((prev)=>[...prev,{
+                            discounter : discounter,
+                            discountPercent : discountPercent
+                        }])
+                    }}>Save Discount</Button>
             </Stack>
+            {/* lists all discounts */}
+            {discountRecords.length!==0 && <TableContainer>
+                <Table size="small" sx={{width:'90%'}}>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell/>
+                            <TableCell>Discounter</TableCell>
+                            <TableCell>Discount Percent</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {discountRecords.map((disc,index)=>(
+                            <TableRow>
+                                <TableCell>{index+1}</TableCell>
+                                <TableCell>{disc.discounter}</TableCell>
+                                <TableCell>{disc.discountPercent}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>}
         </Stack>
+        {/* Create payment dialog for saving a payment */}
         <Button variant="contained" onClick={()=>{setOpenPaymentDialog(true)}}>Create Payment</Button>
         {paymentRecords.length !== 0 && 
             <Box p={2}> 

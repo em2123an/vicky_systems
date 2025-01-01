@@ -1,11 +1,8 @@
 import { Autocomplete, Box, TextField, Typography } from "@mui/material";
-import {useState} from "react";
 import BookingPaymentCor from "./BookingPaymentCor";
 
 export default function PatientRegBooking({listSelectedServices,setListSelectedServices}){
-    //const [selectedService, setSelectedService] = useState(null)
-    
-    
+    //const [selectedService, setSelectedService] = useState(null)    
 
     var MRISERVICEOPTIONS = [
         {title:'Cervical MRI', price:'7800', side: false},
@@ -25,6 +22,7 @@ export default function PatientRegBooking({listSelectedServices,setListSelectedS
         {title:'Elbow MRI', price:'7300', side: true},
         {title:'Wrist MRI', price:'7300', side: true},
     ]
+
 
     function optionGen(services,selectedToBeNotIncluded){
         var fullservices = services.flatMap((value)=>{

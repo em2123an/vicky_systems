@@ -5,52 +5,9 @@ import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import PatientRegBooking from "./PatientRegBooking";
 import { Box, Button, Container, FormControl, FormLabel, InputAdornment, Stack, TextField, Typography } from "@mui/material";
-import {useFormik} from 'formik'
-import { useState } from 'react'
-import { purple, blue } from '@mui/material/colors'
-import { number, object, string } from 'yup'
 
-export default function PatientRegForm({isRegistering, setIsRegistering, events, setEvents, listSelectedServices,setListSelectedServices}){
-    const [curEvents, setCurEvents] = useState({...isRegistering, backgroundColor: purple[500], borderColor:purple[500]})
-    
-    const formik = useFormik({
-        initialValues :{
-            firstname:'',
-            lastname:'',
-            mobileno:'',
-            age_yrs:'',
-            age_mns:'',
-            age_dys:'',
-        },
-        validationSchema : object({
-            firstname: string().required("Required"),
-            lastname: string().required("Required"),
-            mobileno: string().matches(new RegExp('^[0-9]+$')).required("Required"),
-            age_yrs: number().positive().integer(),
-            age_mns: number().positive().integer(),
-            age_dys: number().positive().integer(),
-        }),
-        // validate : (values)=>{
-        //     const errors = {}
-        //     if(!values.firstname){
-        //         errors.firstname = "Required"
-        //     }
-        //     if(!values.lastname){
-        //         errors.lastname = "Required"
-        //     }
-        //     if(!values.mobileno){
-        //         errors.mobileno = "Required"
-        //     }
-        //     return errors
-        // },
-        validateOnChange : true,
-        onSubmit : (values)=>{
-            alert(JSON.stringify(values,null,2))
-            console.log(JSON.stringify(values,null,2))
-            setEvents((prev)=>([...prev,{...curEvents, editable:false, backgroundColor: blue[800], borderColor:blue[800]}]))
-            setIsRegistering(null)
-        }
-    })
+
+export default function PatientRegForm({formik, curEvents, setCurEvents, isRegistering, setIsRegistering, events, setEvents, listSelectedServices,setListSelectedServices}){
 
     return (
             <Container>
@@ -102,13 +59,6 @@ export default function PatientRegForm({isRegistering, setIsRegistering, events,
                             </Stack>
                         </Box>
                         <PatientRegBooking listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
-                        <Stack direction={'row'} spacing={3}>
-                            <Button variant="contained" onClick={formik.handleSubmit}>Done</Button>
-                            <Button variant='contained' onClick={()=>{
-                                setIsRegistering(null)
-                                setListSelectedServices([])
-                            }}>Back</Button>
-                        </Stack>
                     </Box>
                     <Box sx={{flexGrow:2, alignSelf:'stretch'}}>
                         <FullCalendar height={'100%'}
