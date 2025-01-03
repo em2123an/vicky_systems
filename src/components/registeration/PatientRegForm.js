@@ -4,13 +4,13 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import PatientRegBooking from "./PatientRegBooking";
-import { Box, Button, Container, FormControl, FormLabel, InputAdornment, Stack, TextField, Typography } from "@mui/material";
+import { Autocomplete, Box, Container, FormControl, FormLabel, InputAdornment, Stack, TextField, Typography } from "@mui/material";
 
 
-export default function PatientRegForm({formik, curEvents, setCurEvents, isRegistering, setIsRegistering, events, setEvents, listSelectedServices,setListSelectedServices}){
+export default function PatientRegForm({formik, curEvents, setCurEvents, events, listSelectedServices,setListSelectedServices}){
 
     return (
-            <Container>
+            <Container sx={{}}>
                 <Box sx={{display:'flex', flexDirection:'row', justifyContent:'start'}}>
                     <Box component={'form'} onSubmit={formik.handleSubmit} sx={{marginRight:2}}>
                         <Box sx={{display:'flex', flexDirection:'column', alignItems:'flex-start', width:'fit-content', padding:'24px', border:1, borderRadius:'8px'}}>
@@ -56,11 +56,17 @@ export default function PatientRegForm({formik, curEvents, setCurEvents, isRegis
                                             }
                                         }} 
                                     variant="outlined" name="mobileno" label='Mobile Numbner' slotProps={{inputLabel:{shrink:true,}, input:{startAdornment:<InputAdornment position="start">+251</InputAdornment>}}}/>
+                                <Autocomplete
+                                    onChange={(e,value)=>{formik.setFieldValue("sex",value!==null?value:formik.initialValues.sex)}} 
+                                    options={["Male, Female"]}
+                                    sx={{width:240}}
+                                    renderInput={(params)=><TextField required {...params} variant='outlined' label="Sex" name='sex' error={Boolean(formik.touched.sex && formik.errors.sex)} slotProps={{inputLabel:{shrink:true,}}}/>} 
+                                    />
                             </Stack>
                         </Box>
                         <PatientRegBooking listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
                     </Box>
-                    <Box sx={{flexGrow:2, alignSelf:'stretch'}}>
+                    <Box sx={{flexGrow:2, alignContent:'stretch', alignSelf:'stretch', minHeight:'80vh'}}>
                         <FullCalendar height={'100%'}
                             plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin, listPlugin]}
                             initialView='Day'

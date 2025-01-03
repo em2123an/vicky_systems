@@ -12,11 +12,13 @@ import listPlugin from '@fullcalendar/list'
 import React from 'react'
 import { purple } from '@mui/material/colors'
 
-export default function ScheduleCal({setCurEvents, setIsRegistering, events}){
+export default function ScheduleCal({setCurEvents, setIsRegistering, setIsDetailViewing, events}){
     
     
     function handleClick(info){
+        //click on empty - to - make appointment
         setIsRegistering(true)
+        setIsDetailViewing(false)
         setCurEvents({
             start: info.startStr,
             end : info.endStr,
@@ -24,7 +26,23 @@ export default function ScheduleCal({setCurEvents, setIsRegistering, events}){
             backgroundColor: purple[800],
             borderColor: purple[800]
         })
+    }
 
+    function handleEventClick(info){
+        setIsDetailViewing(true)
+        setIsRegistering(false)
+        setCurEvents({
+            start: info.event.startStr,
+            end: info.event.endStr,
+            department : info.event.extendedProps.department,
+            firstname : info.event.extendedProps.firstname,
+            lastname : info.event.extendedProps.lastname,
+            age_y : info.event.extendedProps.age_y,
+            age_m : info.event.extendedProps.age_m,
+            age_d : info.event.extendedProps.age_d,
+            services : [...info.event.extendedProps.services],
+            editable : false,
+        })
     }
 
     return <FullCalendar height={'100vh'}
@@ -57,5 +75,6 @@ export default function ScheduleCal({setCurEvents, setIsRegistering, events}){
         select={(info)=>{
             handleClick(info)
         }}
+        eventClick={handleEventClick}
     />
 }

@@ -3,7 +3,7 @@ import MenuIcon from "@mui/icons-material/Menu"
 import React from "react"
 import ScheduleCal from './ScheduleCal'
 
-export default function SchedulerFront({setIsRegistering, events, setCurEvents}){
+export default function SchedulerFront({setIsRegistering, setIsDetailViewing, events, setCurEvents}){
     const[openTempNavMenu, setopenTempNavMenu] = React.useState(false)
     const invlist = ['CT', 'MRI', 'X-RAY','ULTRASOUND','ECHO']
     const featurelist = ['Scheduler', 'Visit', 'Archive', 'Scan-Worklist','Reporting']
@@ -34,7 +34,7 @@ export default function SchedulerFront({setIsRegistering, events, setCurEvents})
         </Drawer>
         <Box sx={{flexGrow:2}} component={'main'}>
             <Toolbar/>
-            <ScheduleCal setIsRegistering={setIsRegistering} events={events} setCurEvents={setCurEvents}/>
+            <ScheduleCal setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} events={events} setCurEvents={setCurEvents}/>
         </Box>
         <Drawer aria-label="temporary-nav-feature-menu" sx={{zIndex:(theme)=>theme.zIndex.drawer + 2}}
             variant="temporary" open={openTempNavMenu} onClose={handleDrawerToggle}>

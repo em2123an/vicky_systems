@@ -38,7 +38,7 @@ export default function PatientRegPayment({listSelectedServices}){
         }
     }
 
-    return <>
+    return <Stack direction={'column'}>
         <Stack direction={'column'} paddingX={2}>
             <Typography variant="h6" textAlign={'start'}>Charge Details</Typography>
             <BookingPaymentCor isDiscounterOn={true} discountPercent={handleDiscounts()} listSelectedServices={listSelectedServices}/>
@@ -96,7 +96,7 @@ export default function PatientRegPayment({listSelectedServices}){
             </TableContainer>}
         </Stack>
         {/* Create payment dialog for saving a payment */}
-        <Button variant="contained" onClick={()=>{setOpenPaymentDialog(true)}}>Create Payment</Button>
+        <Button variant="contained" sx={{alignSelf:'center'}} onClick={()=>{setOpenPaymentDialog(true)}}>Create Payment</Button>
         {paymentRecords.length !== 0 && 
             <Box p={2}> 
                 <Typography variant="h6" textAlign={'start'}>Payment Details</Typography>
@@ -165,5 +165,5 @@ export default function PatientRegPayment({listSelectedServices}){
                 <Button variant="contained" onClick={handleClosePaymentDialog}>Cancel</Button>
             </DialogActions>
         </Dialog>
-    </>
+    </Stack>
 }
