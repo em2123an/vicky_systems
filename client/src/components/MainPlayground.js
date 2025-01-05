@@ -1,13 +1,15 @@
 import {useState, useRef} from "react"
 import SchedulerFront from "./SchedulerFront"
 import PatientRegForm from "./registeration/PatientRegForm"
-import {Step, StepLabel, Stepper, Button, Stack, Box} from "@mui/material"
+import {Step, StepLabel, Stepper, Button, Stack, Box, CircularProgress, Snackbar} from "@mui/material"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
 import { blue } from '@mui/material/colors'
 import {useFormik} from 'formik'
 import { number, object, string } from 'yup'
 import PatDetailView from "./PatDetailView"
+//const axios = require('axios')
+import axios from 'axios'
 
 export default function MainPlayground(){
     const [isRegistering, setIsRegistering] = useState(false)
@@ -16,29 +18,53 @@ export default function MainPlayground(){
     const [activeStep, setActiveStep] = useState(0)
     const [listSelectedServices, setListSelectedServices] = useState([])
     const [curEvents, setCurEvents] = useState()
+    const [isLoading,setIsLoading] = useState(false)
+    const [snackHandle, setSnackHandle] = useState({snackopen:'false',snackmessage:''})
 
     const isSaveExit = useRef(false) 
 
     const steps =['Booking Information', 'Necessary Documents', 'Payment Details']
     
     function handleEventSaveExit(){
+        setIsLoading(true)
         console.log(formik.values.sex)
         const serviceForTitle = listSelectedServices.reduce((accumulator, curr)=>(accumulator + curr.title + ", "), "")
         //for setting curEvent (registering values) into whole events
-        setEvents((prev)=>([...prev,{...curEvents, editable:false, 
-                    backgroundColor: blue[800], borderColor:blue[800],
-                    title : `${formik.values.firstname} ${formik.values.lastname} - ${serviceForTitle}`,
-                    extendedProps:{
-                        department : 'Radiology',
-                        firstname : formik.values.firstname,
-                        lastname : formik.values.lastname,
-                        sex: formik.values.sex,
-                        age_y : formik.values.age_yrs,
-                        age_m : formik.values.age_mns,
-                        age_d : formik.values.age_dys,
-                        services : [...listSelectedServices]
-                    }
-                }]))
+        axios.post('http://localhost:8080/makeappointment',{
+            department : 'Radiology',
+            firstname : formik.values.firstname,
+            lastname : formik.values.lastname,
+            sex: formik.values.sex,
+            age_y : formik.values.age_yrs,
+            age_m : formik.values.age_mns,
+            age_d : formik.values.age_dys,
+            services : [...listSelectedServices]
+        },{headers:{"Content-Type":"multipart/form-data"}}).then((res)=>{
+            if(res.status===200){
+                setEvents((prev)=>([...prev,{...curEvents, editable:false, 
+                        backgroundColor: blue[800], borderColor:blue[800],
+                        title : `${formik.values.firstname} ${formik.values.lastname} - ${serviceForTitle}`,
+                        extendedProps:{
+                            department : 'Radiology',
+                            firstname : formik.values.firstname,
+                            lastname : formik.values.lastname,
+                            sex: formik.values.sex,
+                            age_y : formik.values.age_yrs,
+                            age_m : formik.values.age_mns,
+                            age_d : formik.values.age_dys,
+                            services : [...listSelectedServices]
+                        }
+                    }]))
+                //it is saved
+                setIsLoading(false)
+                setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Saved Successfully'}))
+            }else{
+                throw Error
+            }
+        }).catch((err)=>{
+            setIsLoading(false)
+            setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Failed to Save'}))
+        })
         isSaveExit.current = false
         setIsRegistering(false)
         setListSelectedServices([])
@@ -91,6 +117,8 @@ export default function MainPlayground(){
 
     return (
         <>
+            {isLoading ? <CircularProgress/>:
+            <>
             {isRegistering ? 
                 <Box display={'flex'} flexDirection={'column'}>
                     {/* View when registering patients as isRegistering = true */}
@@ -145,7 +173,19 @@ export default function MainPlayground(){
                     {/* for Detail Viewing */}
                     <PatDetailView patDetail={curEvents} setIsDetailViewing={setIsDetailViewing}/>
                 </>:
-                <SchedulerFront events={events} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>}
+                <>
+                    {/* for schedule view */}
+                    <Snackbar
+                        anchorOrigin={{vertical:'top', horizontal:'center'}}
+                        open={snackHandle.snackopen}
+                        autoHideDuration={5000}
+                        onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
+                        message={snackHandle.snackmessage}
+                     />
+                    <SchedulerFront events={events} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
+                </>
+                }
+            </>}
         </>
     )
 }
