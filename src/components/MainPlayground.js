@@ -7,6 +7,7 @@ import PatientRegPayment from "./registeration/PatientRegPayment"
 import { blue } from '@mui/material/colors'
 import {useFormik} from 'formik'
 import { number, object, string } from 'yup'
+import PatDetailView from "./PatDetailView"
 
 export default function MainPlayground(){
     const [isRegistering, setIsRegistering] = useState(false)
@@ -31,6 +32,7 @@ export default function MainPlayground(){
                         department : 'Radiology',
                         firstname : formik.values.firstname,
                         lastname : formik.values.lastname,
+                        sex: formik.values.sex,
                         age_y : formik.values.age_yrs,
                         age_m : formik.values.age_mns,
                         age_d : formik.values.age_dys,
@@ -141,6 +143,7 @@ export default function MainPlayground(){
                 isDetailViewing ?
                 <>
                     {/* for Detail Viewing */}
+                    <PatDetailView patDetail={curEvents} setIsDetailViewing={setIsDetailViewing}/>
                 </>:
                 <SchedulerFront events={events} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>}
         </>

@@ -58,7 +58,7 @@ export default function PatientRegForm({formik, curEvents, setCurEvents, events,
                                     variant="outlined" name="mobileno" label='Mobile Numbner' slotProps={{inputLabel:{shrink:true,}, input:{startAdornment:<InputAdornment position="start">+251</InputAdornment>}}}/>
                                 <Autocomplete
                                     onChange={(e,value)=>{formik.setFieldValue("sex",value!==null?value:formik.initialValues.sex)}} 
-                                    options={["Male, Female"]}
+                                    options={["Male", "Female"]}
                                     sx={{width:240}}
                                     renderInput={(params)=><TextField required {...params} variant='outlined' label="Sex" name='sex' error={Boolean(formik.touched.sex && formik.errors.sex)} slotProps={{inputLabel:{shrink:true,}}}/>} 
                                     />

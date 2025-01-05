@@ -5,7 +5,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import {useState} from 'react'
 import {format} from 'date-fns'
 
-export default function PatientRegUploader(){
+export default function PatientRegUploader({fullwidth=false}){
     const [documentUploadType, setDocumentUploadType] = useState("Prescription")
     const [fileUploaded, setFileUploaded] = useState([])
 
@@ -22,7 +22,7 @@ export default function PatientRegUploader(){
       });
     
     return <Container>
-        <Box sx={{width:'70%', m:1, p:2, border:1, borderRadius:'8px', display:'flex', flexDirection:'column', justifyContent:'start', alignItems:'start'}}>
+        <Box sx={{width:fullwidth?'100%':'70%', m:1, p:2, border:1, borderRadius:'8px', display:'flex', flexDirection:'column', justifyContent:'start', alignItems:'start'}}>
             <FormControl variant='outlined'>
                 <FormLabel id="document-upload-radio-buttons-group" sx={{textAlign:'start'}}>Select Type of Document</FormLabel>
                 <RadioGroup
@@ -65,10 +65,10 @@ export default function PatientRegUploader(){
                     //show image for prescription
                     //make link for screening and attachment
                     return <ListItem>
-                        <Card sx={{width:'64%'}}>
+                        <Card sx={{width:fullwidth?'100%':'64%'}}>
                             <CardHeader title={value.documentUploadType} subheader={format(new Date(Date.now()),'hh:mm:ss (eee) MMM do yyyy')}/>
                             <CardMedia
-                                sx={{height:'100px'}}
+                                sx={{height:'94px'}}
                                 src={value.file}
                                 />
                             <CardActions sx={{display:'flex', justifyContent:'end'}}>
