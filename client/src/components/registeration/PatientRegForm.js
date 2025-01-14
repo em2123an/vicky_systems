@@ -26,19 +26,25 @@ export default function PatientRegForm({formik, curEvents, setCurEvents, events,
                                         <Typography variant="caption" >Age</Typography>
                                     </FormLabel> 
                                     <Stack direction={'row'} spacing={2}>
-                                        <TextField variant="outlined" value={formik.values.age_yrs} onChange={(event)=>{
+                                        <TextField variant="outlined"  value={formik.values.age_yrs}
+                                            error={formik.touched.age_yrs && formik.errors.age_yrs} 
+                                            onChange={(event)=>{
                                                 var reg = new RegExp('^[0-9]*$')
                                                 if(reg.test(event.target.value)){
                                                     return formik.handleChange(event)
                                                 }}} 
                                             name="age_yrs" size="small" sx={{width:'150px'}} slotProps={{input:{endAdornment:<InputAdornment position="end">Year</InputAdornment>}}}/>
-                                        <TextField variant="outlined" value={formik.values.age_mns} onChange={(event)=>{
+                                        <TextField variant="outlined" value={formik.values.age_mns} 
+                                            error={formik.touched.age_mns && formik.errors.age_mns} 
+                                            onChange={(event)=>{
                                                 var reg = new RegExp('^[0-9]*$')
                                                 if(reg.test(event.target.value)){
                                                     return formik.handleChange(event)
                                                 }}} 
                                             name="age_mns" size="small" sx={{width:'150px'}} slotProps={{input:{endAdornment:<InputAdornment position="end">Month</InputAdornment>}}}/>
-                                        <TextField variant="outlined" value={formik.values.age_dys} onChange={(event)=>{
+                                        <TextField variant="outlined" value={formik.values.age_dys} 
+                                            error={formik.touched.age_dys && formik.errors.age_dys} 
+                                            onChange={(event)=>{
                                                 var reg = new RegExp('^[0-9]*$')
                                                 if(reg.test(event.target.value)){
                                                     return formik.handleChange(event)
@@ -57,7 +63,8 @@ export default function PatientRegForm({formik, curEvents, setCurEvents, events,
                                         }} 
                                     variant="outlined" name="mobileno" label='Mobile Numbner' slotProps={{inputLabel:{shrink:true,}, input:{startAdornment:<InputAdornment position="start">+251</InputAdornment>}}}/>
                                 <Autocomplete
-                                    onChange={(e,value)=>{formik.setFieldValue("sex",value!==null?value:formik.initialValues.sex)}} 
+                                    onChange={(e,value)=>{formik.setFieldValue("sex",value!==null?value:formik.values.sex)}}
+                                    value={formik.values.sex} 
                                     options={["Male", "Female"]}
                                     sx={{width:240}}
                                     renderInput={(params)=><TextField required {...params} variant='outlined' label="Sex" name='sex' error={Boolean(formik.touched.sex && formik.errors.sex)} slotProps={{inputLabel:{shrink:true,}}}/>} 

@@ -1,13 +1,14 @@
 import {useState, useRef} from "react"
 import SchedulerFront from "./SchedulerFront"
 import PatientRegForm from "./registeration/PatientRegForm"
-import {Step, StepLabel, Stepper, Button, Stack, Box, CircularProgress, Snackbar} from "@mui/material"
+import {Step, StepLabel, Stepper, Button, Stack, Box, CircularProgress, Snackbar, Backdrop} from "@mui/material"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
 import { blue } from '@mui/material/colors'
 import {useFormik} from 'formik'
 import { number, object, string } from 'yup'
 import PatDetailView from "./PatDetailView"
+import {format, sub} from 'date-fns'
 //const axios = require('axios')
 import axios from 'axios'
 
@@ -19,6 +20,7 @@ export default function MainPlayground(){
     const [listSelectedServices, setListSelectedServices] = useState([])
     const [curEvents, setCurEvents] = useState()
     const [isLoading,setIsLoading] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
     const [snackHandle, setSnackHandle] = useState({snackopen:'false',snackmessage:''})
 
     const isSaveExit = useRef(false) 
@@ -26,19 +28,25 @@ export default function MainPlayground(){
     const steps =['Booking Information', 'Necessary Documents', 'Payment Details']
     
     function handleEventSaveExit(){
-        setIsLoading(true)
-        console.log(formik.values.sex)
+        isSaveExit.current = false
+        setIsSaving(true)
         const serviceForTitle = listSelectedServices.reduce((accumulator, curr)=>(accumulator + curr.title + ", "), "")
+        const resultdate = sub(Date.now(),{
+            years:formik.values.age_yrs,
+            months:formik.values.age_mns,
+            days:formik.values.age_dys
+        })
         //for setting curEvent (registering values) into whole events
         axios.post('http://localhost:8080/makeappointment',{
             department : 'Radiology',
             firstname : formik.values.firstname,
             lastname : formik.values.lastname,
             sex: formik.values.sex,
-            age_y : formik.values.age_yrs,
-            age_m : formik.values.age_mns,
-            age_d : formik.values.age_dys,
-            services : [...listSelectedServices]
+            mobileno : formik.values.mobileno,
+            dob : format(resultdate,'yyyy-MM-dd'),
+            services : [...listSelectedServices],
+            sched_start : curEvents.start,
+            sched_end : curEvents.end
         },{headers:{"Content-Type":"multipart/form-data"}}).then((res)=>{
             if(res.status===200){
                 setEvents((prev)=>([...prev,{...curEvents, editable:false, 
@@ -56,20 +64,23 @@ export default function MainPlayground(){
                         }
                     }]))
                 //it is saved
-                setIsLoading(false)
+                setIsSaving(false)
                 setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Saved Successfully'}))
-            }else{
-                throw Error
+                setIsRegistering(false)
+                setListSelectedServices([])
+                formik.handleReset()
+                setActiveStep(0)
+            }else if(res.status===505){
+                setIsSaving(false)
+                setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Connection Error! Failed to Save'}))
+            }
+            else{
+                throw new Error()
             }
         }).catch((err)=>{
-            setIsLoading(false)
+            setIsSaving(false)
             setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Failed to Save'}))
         })
-        isSaveExit.current = false
-        setIsRegistering(false)
-        setListSelectedServices([])
-        formik.handleReset()
-        setActiveStep(0)
     }
 
     const formik = useFormik({
@@ -87,23 +98,22 @@ export default function MainPlayground(){
             lastname: string().required("Required"),
             sex: string().required("Required"),
             mobileno: string().matches(new RegExp('^[0-9]+$')).required("Required"),
-            age_yrs: number().positive().integer(),
-            age_mns: number().positive().integer(),
-            age_dys: number().positive().integer(),
+            age_yrs: number().positive().integer().test((val, ctx)=>{
+                var {age_dys, age_mns} = ctx.parent
+                if(!(age_dys || age_mns)) return val!=null
+                return true
+            }),
+            age_mns: number().positive().integer().test((val, ctx)=>{
+                var {age_yrs, age_dys} = ctx.parent
+                if(!(age_yrs || age_dys)) return val!=null
+                return true
+            }),
+            age_dys: number().positive().integer().test((val, ctx)=>{
+                var {age_yrs, age_mns} = ctx.parent
+                if(!(age_yrs || age_mns)) return val!=null
+                return true
+            }),
         }),
-        // validate : (values)=>{
-        //     const errors = {}
-        //     if(!values.firstname){
-        //         errors.firstname = "Required"
-        //     }
-        //     if(!values.lastname){
-        //         errors.lastname = "Required"
-        //     }
-        //     if(!values.mobileno){
-        //         errors.mobileno = "Required"
-        //     }
-        //     return errors
-        // },
         validateOnChange : true,
         onSubmit : (values)=>{
             if(isSaveExit.current){
@@ -121,6 +131,20 @@ export default function MainPlayground(){
             <>
             {isRegistering ? 
                 <Box display={'flex'} flexDirection={'column'}>
+                    <Backdrop
+                        sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
+                        open={isSaving}
+                        onClick={()=>{}}
+                    >
+                        <CircularProgress/>
+                    </Backdrop>
+                    <Snackbar
+                        anchorOrigin={{vertical:'top', horizontal:'center'}}
+                        open={snackHandle.snackopen}
+                        autoHideDuration={5000}
+                        onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
+                        message={snackHandle.snackmessage}
+                     />
                     {/* View when registering patients as isRegistering = true */}
                     <Stepper activeStep={activeStep} sx={{m:1, p:1, marginBottom:2}}>
                         {steps.map((value, index)=>{
@@ -184,7 +208,7 @@ export default function MainPlayground(){
                      />
                     <SchedulerFront events={events} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
                 </>
-                }
+            }
             </>}
         </>
     )

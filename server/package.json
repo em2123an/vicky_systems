@@ -9,9 +9,12 @@
   "author": "em2123an",
   "license": "ISC",
   "dependencies": {
+    "@dotenvx/dotenvx": "^1.32.1",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "formidable": "^3.5.2",
+    "mariadb": "^3.4.0",
     "mysql": "^2.18.1"
   }
 }
