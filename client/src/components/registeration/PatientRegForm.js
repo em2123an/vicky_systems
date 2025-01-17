@@ -7,7 +7,7 @@ import PatientRegBooking from "./PatientRegBooking";
 import { Autocomplete, Box, Container, FormControl, FormLabel, InputAdornment, Stack, TextField, Typography } from "@mui/material";
 
 
-export default function PatientRegForm({formik, curEvents, setCurEvents, events, listSelectedServices,setListSelectedServices}){
+export default function PatientRegForm({serviceList, formik, curEvents, setCurEvents, events, listSelectedServices,setListSelectedServices}){
 
     return (
             <Container sx={{}}>
@@ -71,7 +71,7 @@ export default function PatientRegForm({formik, curEvents, setCurEvents, events,
                                     />
                             </Stack>
                         </Box>
-                        <PatientRegBooking listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
+                        <PatientRegBooking serviceList={serviceList} listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
                     </Box>
                     <Box sx={{flexGrow:2, alignContent:'stretch', alignSelf:'stretch', minHeight:'80vh'}}>
                         <FullCalendar height={'100%'}

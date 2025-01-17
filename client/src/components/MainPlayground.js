@@ -9,7 +9,7 @@ import {useFormik} from 'formik'
 import { number, object, string } from 'yup'
 import PatDetailView from "./PatDetailView"
 import {format, sub} from 'date-fns'
-//const axios = require('axios')
+import {useQuery} from '@tanstack/react-query'
 import axios from 'axios'
 
 export default function MainPlayground(){
@@ -23,10 +23,16 @@ export default function MainPlayground(){
     const [isSaving, setIsSaving] = useState(false)
     const [snackHandle, setSnackHandle] = useState({snackopen:'false',snackmessage:''})
 
-    const isSaveExit = useRef(false) 
+    const {isPending: isServiceListLoading, isError: isServiceListError, isSuccess: isServiceListSuccess, data:serviceList} = useQuery(
+        {queryKey:['get_services'], 
+        queryFn: ()=>(axios.get('http://localhost:8080/getservicesdata')),
+        gcTime : 1000*60*60*24,
+        select : (response)=>(response.data)
+        })
 
     const steps =['Booking Information', 'Necessary Documents', 'Payment Details']
     
+    const isSaveExit = useRef(false)
     function handleEventSaveExit(){
         isSaveExit.current = false
         setIsSaving(true)
@@ -124,12 +130,24 @@ export default function MainPlayground(){
         }
     })
 
+    if(isServiceListError){
+        return (<>
+            {/* to show error message and empty schedule */}
+                    <Snackbar
+                        anchorOrigin={{vertical:'top', horizontal:'center'}}
+                        open={snackHandle.snackopen}
+                        autoHideDuration={5000}
+                        onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
+                        message={snackHandle.snackmessage}
+                     />
+                    <SchedulerFront events={events} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
+        </>)}
 
     return (
         <>
-            {isLoading ? <CircularProgress/>:
+            {isServiceListLoading ? <CircularProgress/>:
             <>
-            {isRegistering ? 
+            {(isRegistering && isServiceListSuccess) ? 
                 <Box display={'flex'} flexDirection={'column'}>
                     <Backdrop
                         sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
@@ -154,7 +172,7 @@ export default function MainPlayground(){
                         })}
                     </Stepper>
                     {activeStep===0 ? 
-                            <PatientRegForm curEvents={curEvents} setCurEvents={setCurEvents} formik={formik} isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
+                            <PatientRegForm serviceList={serviceList} curEvents={curEvents} setCurEvents={setCurEvents} formik={formik} isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
                                 events={events} setEvents={setEvents} 
                                 listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
                         : activeStep ===1 ?

@@ -27,8 +27,8 @@ export default function BookingPaymentCor({isDiscounterOn, discountPercent=0, li
                         </TableHead>
                         <TableBody>
                             {listSelectedServices.map((value)=>{
-                                return <TableRow key={value.title}>
-                                    <TableCell colSpan={2}>{value.title}</TableCell>
+                                return <TableRow key={value.servicename}>
+                                    <TableCell colSpan={2}>{value.servicename}</TableCell>
                                     <TableCell>{value.price}</TableCell>
                                 </TableRow>
                             })}
