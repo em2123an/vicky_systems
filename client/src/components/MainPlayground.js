@@ -26,7 +26,7 @@ export default function MainPlayground(){
     const {isPending: isServiceListLoading, isError: isServiceListError, isSuccess: isServiceListSuccess, data:serviceList} = useQuery(
         {queryKey:['get_services'], 
         queryFn: ()=>(axios.get('http://localhost:8080/getservicesdata')),
-        gcTime : 1000*60*60*24,
+        gcTime : 'Infinity',
         select : (response)=>(response.data)
         })
 
@@ -51,8 +51,8 @@ export default function MainPlayground(){
             mobileno : formik.values.mobileno,
             dob : format(resultdate,'yyyy-MM-dd'),
             services : [...listSelectedServices],
-            sched_start : curEvents.start,
-            sched_end : curEvents.end
+            sched_start : format(curEvents.start,'yyyy-MM-dd HH:mm:ss'),
+            sched_end : format(curEvents.end,'yyyy-MM-dd HH:mm:ss')
         },{headers:{"Content-Type":"multipart/form-data"}}).then((res)=>{
             if(res.status===200){
                 setEvents((prev)=>([...prev,{...curEvents, editable:false, 

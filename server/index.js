@@ -50,10 +50,14 @@ async function makeappointment(fields = null, files=null) {
                 'INSERT INTO patients(firstname, lastname, dob, phonenumber) VALUES (?,?,?,?)',
                 [fields.firstname, fields.lastname, fields.dob, fields.mobileno])
             //todo insert into visits and visit_service_lines
+            var {insertId: visitId} = await conn.query(
+                'INSERT INTO visits(patientid, scheduledatetime_start, scheduledatetime_end) VALUES (CAST(? AS UNSIGNED INTEGER) ,?,?)',
+                [patientId, fields.sched_start, fields.sched_end])
             await conn.commit() //final commit
             resol()
         } catch (err) {
             conn.rollback()
+            console.log(err.message)
             rejec(err)
         } finally{
             if(conn) conn.release()
