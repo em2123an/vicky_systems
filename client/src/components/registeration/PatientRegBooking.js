@@ -1,7 +1,7 @@
 import { Autocomplete, Box, TextField, Typography } from "@mui/material";
 import BookingPaymentCor from "./BookingPaymentCor";
 
-export default function PatientRegBooking({serviceList, listSelectedServices,setListSelectedServices}){
+export default function PatientRegBooking({serviceList, listSelectedServices,setListSelectedServices, formik}){
     //const [selectedService, setSelectedService] = useState(null)    
     
     
@@ -25,12 +25,19 @@ export default function PatientRegBooking({serviceList, listSelectedServices,set
             <Autocomplete multiple id="select_service" sx={{marginY:1}}
                 options={optionGen(serviceList,listSelectedServices)}
                 getOptionLabel={(option)=>option.servicename}
-                value={listSelectedServices}
-                onChange={(e,newValue,)=>{        
-                    setListSelectedServices(()=>([...newValue]))
-                        }}
+                //value={listSelectedServices}
+                value={formik.values.selservices}
+                // onChange={(e,newValue,)=>{        
+                //     setListSelectedServices(()=>([...newValue]))
+                //         }}
+                onChange={(e,newvalue)=>{
+                    formik.setFieldValue("selservices",newvalue!==null?newvalue:formik.values.selservices)
+                    setListSelectedServices(()=>([...newvalue]))
+                }}
                 renderInput={(params)=>(
-                                <TextField {...params} sx={{width:'500px'}} label="Select Service"/>
+                                <TextField {...params} sx={{width:'500px'}} label="Select Service" required
+                                    name='selservices' error={Boolean(formik.touched.selservices && formik.errors.selservices)}
+                                />
                         )}
                 />
         </Box>        

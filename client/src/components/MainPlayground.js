@@ -6,13 +6,14 @@ import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
 import { blue } from '@mui/material/colors'
 import {useFormik} from 'formik'
-import { number, object, string } from 'yup'
+import { array, number, object, string } from 'yup'
 import PatDetailView from "./PatDetailView"
 import {format, sub} from 'date-fns'
 import {useQuery} from '@tanstack/react-query'
 import axios from 'axios'
 
 export default function MainPlayground(){
+    //main state hub
     const [isRegistering, setIsRegistering] = useState(false)
     const [isDetailViewing, setIsDetailViewing] = useState(false)
     const [events, setEvents] = useState([])
@@ -21,22 +22,60 @@ export default function MainPlayground(){
     const [curEvents, setCurEvents] = useState()
     const [isLoading,setIsLoading] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
-    const [snackHandle, setSnackHandle] = useState({snackopen:'false',snackmessage:''})
+    const [snackHandle, setSnackHandle] = useState({snackopen:false,snackmessage:''})
 
+    //get selected services
+    function selServiceGen(fullservices,selectedToBeIncluded){
+        if(selectedToBeIncluded.length === 0){return []}
+        else{
+            return fullservices.filter((service)=>{
+                var filt = false
+                selectedToBeIncluded.forEach(selectedid => {
+                    if(service.serviceid === selectedid){filt = true}
+                });
+                return filt
+            })
+        }
+    }
+
+    //get services; set infinity for stay time; load on page load
     const {isPending: isServiceListLoading, isError: isServiceListError, isSuccess: isServiceListSuccess, data:serviceList} = useQuery(
         {queryKey:['get_services'], 
         queryFn: ()=>(axios.get('http://localhost:8080/getservicesdata')),
         gcTime : 'Infinity',
-        select : (response)=>(response.data)
+        select : (response)=>(response.data),
         })
+    //get all the appointments
+    const {isPending: isGetApptsLoading,isError: isGetApptsError, isSuccess: isGetApptsSuccess, data:getAppts} = useQuery({
+        queryKey:['get_appointments','all'],
+        queryFn: ()=>(axios.get('http://localhost:8080/getappointments')),
+        enabled : !!serviceList,
+        select: (response)=>{
+            //console.log(response.data)
+            const x = response.data.map((value)=>({
+                    title : `${value.firstname} ${value.lastname}`,
+                    start : value.scheduledatetime_start,
+                    end: value.scheduledatetime_end,
+                    backgroundColor: blue[800], 
+                    borderColor:blue[800],
+                    extendedProps : {...value,
+                        services: selServiceGen(serviceList,value.services)
+                    }
+                }))
+            console.log(x)
+            return x
+        }
+    })
 
     const steps =['Booking Information', 'Necessary Documents', 'Payment Details']
     
-    const isSaveExit = useRef(false)
+    const isSaveExit = useRef(false)//used to saveExit or to go to next step
+    
     function handleEventSaveExit(){
-        isSaveExit.current = false
+        isSaveExit.current = false //reset isSaveExit ref
         setIsSaving(true)
-        const serviceForTitle = listSelectedServices.reduce((accumulator, curr)=>(accumulator + curr.title + ", "), "")
+        const serviceForTitle = listSelectedServices.reduce((accumulator, curr, curIndex, org)=>(accumulator + curr.servicename + ((curIndex === (org.length-1))?"":", ")), "")
+        //to get DOB
         const resultdate = sub(Date.now(),{
             years:formik.values.age_yrs,
             months:formik.values.age_mns,
@@ -50,7 +89,7 @@ export default function MainPlayground(){
             sex: formik.values.sex,
             mobileno : formik.values.mobileno,
             dob : format(resultdate,'yyyy-MM-dd'),
-            services : [...listSelectedServices],
+            services : listSelectedServices.map((ser)=>(ser.serviceid)),
             sched_start : format(curEvents.start,'yyyy-MM-dd HH:mm:ss'),
             sched_end : format(curEvents.end,'yyyy-MM-dd HH:mm:ss')
         },{headers:{"Content-Type":"multipart/form-data"}}).then((res)=>{
@@ -98,6 +137,7 @@ export default function MainPlayground(){
             age_yrs:'',
             age_mns:'',
             age_dys:'',
+            selservices : []
         },
         validationSchema : object({
             firstname: string().required("Required"),
@@ -119,6 +159,7 @@ export default function MainPlayground(){
                 if(!(age_yrs || age_mns)) return val!=null
                 return true
             }),
+            selservices : array().min(1)
         }),
         validateOnChange : true,
         onSubmit : (values)=>{
@@ -131,6 +172,7 @@ export default function MainPlayground(){
     })
 
     if(isServiceListError){
+        setSnackHandle((prev)=>({...prev,snackopen:true, snackmessage:"Network Error"}))
         return (<>
             {/* to show error message and empty schedule */}
                     <Snackbar
@@ -140,7 +182,7 @@ export default function MainPlayground(){
                         onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
                         message={snackHandle.snackmessage}
                      />
-                    <SchedulerFront events={events} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
+                    <SchedulerFront events={isGetApptsError ? [] : getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
         </>)}
 
     return (
@@ -217,6 +259,15 @@ export default function MainPlayground(){
                 </>:
                 <>
                     {/* for schedule view */}
+                    {/* for loading view */}
+                    <Backdrop
+                        sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
+                        open={isGetApptsLoading}
+                        onClick={()=>{}}
+                    >
+                        <CircularProgress/>
+                    </Backdrop>
+                    {/* for snack bar (info) view */}
                     <Snackbar
                         anchorOrigin={{vertical:'top', horizontal:'center'}}
                         open={snackHandle.snackopen}
@@ -224,7 +275,7 @@ export default function MainPlayground(){
                         onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
                         message={snackHandle.snackmessage}
                      />
-                    <SchedulerFront events={events} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
+                    <SchedulerFront events={getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
                 </>
             }
             </>}

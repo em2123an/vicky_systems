@@ -24,6 +24,7 @@ const pool = mariadb.createPool({
     bigNumberStrings: true
 })
 
+//get list of services
 async function getservicesdata(){
     return new Promise(async (resol,rejec)=>{
         var conn;
@@ -38,7 +39,33 @@ async function getservicesdata(){
         }
     })
 }
-
+//select and make quiries to get all the appointment
+async function getappointments(){
+    return new Promise(async (resol,rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            var result = await conn.query(
+                `SELECT p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
+                    v.scheduledatetime_start, v.scheduledatetime_end,
+                    JSON_ARRAYAGG(s.serviceid) as services  
+                FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
+                INNER JOIN visit_service_line AS vsl ON v.visitid = vsl.visitid
+                INNER JOIN services as s ON vsl.serviceid = s.serviceid
+                GROUP BY v.visitid
+                ` 
+            )
+            //console.log(result)
+            resol(result)
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally {
+            if(conn) conn.release()
+        }
+    })
+}
+//to make appointment with patient info and service 
 async function makeappointment(fields = null, files=null) {
     return new Promise(async (resol, rejec)=>{
         var conn;
@@ -47,12 +74,20 @@ async function makeappointment(fields = null, files=null) {
             await conn.beginTransaction() //starts transaction
             //insert into patients table and get patient id
             var {insertId: patientId} = await conn.query(
-                'INSERT INTO patients(firstname, lastname, dob, phonenumber) VALUES (?,?,?,?)',
-                [fields.firstname, fields.lastname, fields.dob, fields.mobileno])
-            //todo insert into visits and visit_service_lines
+                'INSERT INTO patients(firstname, lastname, dob, sex, phonenumber) VALUES (?,?,?,?,?)',
+                [fields.firstname, fields.lastname, fields.dob, fields.sex, fields.mobileno])
+            //insert into visits and visit_service_lines
             var {insertId: visitId} = await conn.query(
                 'INSERT INTO visits(patientid, scheduledatetime_start, scheduledatetime_end) VALUES (CAST(? AS UNSIGNED INTEGER) ,?,?)',
                 [patientId, fields.sched_start, fields.sched_end])
+            console.log(fields)
+            console.log(typeof(fields))
+            fields['services[]'].forEach(async (selectedserviceid) => {
+                var {insertId: visitservicelineid} = await conn.query(
+                    'INSERT INTO visit_service_line (visitid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), ?)',
+                    [visitId,selectedserviceid]
+                )
+            }); 
             await conn.commit() //final commit
             resol()
         } catch (err) {
@@ -65,10 +100,18 @@ async function makeappointment(fields = null, files=null) {
     })
 }
 
-//TODO get : services lists and link with patient registration form
-//Use react query for get response
+//list of APIs
 app.get('/getservicesdata',(req,res,next)=>{
     getservicesdata().then((result)=>{
+        res.status(200).send(result).end()
+    }).catch((err)=>{
+        res.status(505).end(err.message)
+    })
+})
+
+app.get('/getappointments',(req,res,next)=>{
+    getappointments().then((result)=>{
+        console.log(result)
         res.status(200).send(result).end()
     }).catch((err)=>{
         res.status(505).end(err.message)
@@ -91,6 +134,7 @@ app.post('/makeappointment',(req,res,next)=>{
         })
     })
 })
+
 //trigerring a listen
 app.listen(8080,()=>{
     console.log('Server is listening at 8080...')

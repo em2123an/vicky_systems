@@ -4,12 +4,31 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { useState } from "react"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
+import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format} from 'date-fns'
 
 export default function PatDetailView({patDetail, setIsDetailViewing}){
     const [expanded, setExpanded] = useState('documentAcc')
 
     const handleAccChange = (panel) =>(event, isExpanded) =>{
         setExpanded(isExpanded?panel:false);
+    }
+
+    function getAge(dob){
+        const year = differenceInCalendarYears(Date.now(),Date.parse(dob))
+        if (year >= 5) return `${year} Y`
+        const month = differenceInCalendarMonths(Date.now(), Date.parse(dob))
+        if (month >= 12){
+            return `${Math.floor(month/12)} Y ${month%12} M`  
+        } 
+        if (month<12 && month>=1) return `${month} M`
+        const day = differenceInCalendarDays(Date.now(), Date.parse(dob)) 
+        if (month <1) return `${day} D`
+    }
+
+    function getAppointment(startDT, endDT){
+        const start = format(Date.parse(startDT), 'hh:mm aa')
+        const end = format(Date.parse(endDT), 'hh:mm aa @ ccc, do MMM yyyy')
+        return `${start} - ${end}`
     }
 
     return <Box sx={{paddingX:5, paddingY:2}}>
@@ -22,13 +41,14 @@ export default function PatDetailView({patDetail, setIsDetailViewing}){
                 value={`${patDetail.firstname} ${patDetail.lastname}`} />
             <TextField label='Age' variant="standard" 
                 slotProps={{input:{readOnly:true}}}
-                value={`${patDetail.age_y}Y ${(patDetail.age_m!==null && patDetail.age_m!=="")?`${patDetail.age_m}M`:""} ${(patDetail.age_d!==null && patDetail.age_d!=="")?`${patDetail.age_d}D`:""}`} />
+                value={getAge(patDetail.dob)} />
             <TextField label='Sex' variant="standard" 
                 slotProps={{input:{readOnly:true}}}
                 value={`${patDetail.sex}`} />
             <TextField label='Appointment Date' variant="standard" 
                 slotProps={{input:{readOnly:true}}}
-                value={`${patDetail.start} - ${patDetail.end}`} />
+                sx={{flexGrow:2}}
+                value={getAppointment(patDetail.start, patDetail.end)}/>
         </Box>
         <Box>
             <Accordion expanded={expanded === 'serviceList'} onChange={handleAccChange('serviceList')} sx={{m:2}}>
@@ -42,7 +62,7 @@ export default function PatDetailView({patDetail, setIsDetailViewing}){
                                 <ListItem key={index} secondaryAction={
                                         <IconButton edge='end'><DeleteIcon/></IconButton>
                                     }>
-                                    <ListItemText primary={service.title}/>
+                                    <ListItemText primary={service.servicename}/>
                                     <Typography component={'span'} sx={{marginRight:8}}>Price : {service.price}</Typography>
                                 </ListItem>
                             ))}

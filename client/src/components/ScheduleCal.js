@@ -38,9 +38,7 @@ export default function ScheduleCal({setCurEvents, setIsRegistering, setIsDetail
             firstname : info.event.extendedProps.firstname,
             lastname : info.event.extendedProps.lastname,
             sex : info.event.extendedProps.sex,
-            age_y : info.event.extendedProps.age_y,
-            age_m : info.event.extendedProps.age_m,
-            age_d : info.event.extendedProps.age_d,
+            dob : info.event.extendedProps.dob,
             services : [...info.event.extendedProps.services],
             editable : false,
         })

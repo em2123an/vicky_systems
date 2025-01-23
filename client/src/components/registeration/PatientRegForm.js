@@ -71,7 +71,7 @@ export default function PatientRegForm({serviceList, formik, curEvents, setCurEv
                                     />
                             </Stack>
                         </Box>
-                        <PatientRegBooking serviceList={serviceList} listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
+                        <PatientRegBooking serviceList={serviceList} listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices} formik={formik}/>
                     </Box>
                     <Box sx={{flexGrow:2, alignContent:'stretch', alignSelf:'stretch', minHeight:'80vh'}}>
                         <FullCalendar height={'100%'}
