@@ -39,6 +39,7 @@ async function getservicesdata(){
         }
     })
 }
+
 //select and make quiries to get all the appointment
 async function getappointments(){
     return new Promise(async (resol,rejec)=>{
@@ -47,8 +48,8 @@ async function getappointments(){
             conn = await pool.getConnection()
             var result = await conn.query(
                 `SELECT p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
-                    v.scheduledatetime_start, v.scheduledatetime_end,
-                    JSON_ARRAYAGG(s.serviceid) as services  
+                    v.scheduledatetime_start, v.scheduledatetime_end, v.visitid,
+                    JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames   
                 FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
                 INNER JOIN visit_service_line AS vsl ON v.visitid = vsl.visitid
                 INNER JOIN services as s ON vsl.serviceid = s.serviceid
@@ -65,6 +66,36 @@ async function getappointments(){
         }
     })
 }
+
+//select and make quiries to get specific appointment by visitid
+async function getapptdetails(visitid){
+    return new Promise(async (resol,rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            var result = await conn.query(
+                `SELECT p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
+                    v.scheduledatetime_start, v.scheduledatetime_end, v.visitid,
+                    JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames   
+                FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
+                INNER JOIN visit_service_line AS vsl ON v.visitid = vsl.visitid
+                INNER JOIN services as s ON vsl.serviceid = s.serviceid
+                WHERE v.visitid = ?
+                GROUP BY v.visitid
+                `,
+                [visitid] 
+            )
+            console.log(result)
+            resol(result)
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally {
+            if(conn) conn.release()
+        }
+    })
+}
+
 //to make appointment with patient info and service 
 async function makeappointment(fields = null, files=null) {
     return new Promise(async (resol, rejec)=>{
@@ -113,6 +144,15 @@ app.get('/getappointments',(req,res,next)=>{
     getappointments().then((result)=>{
         console.log(result)
         res.status(200).send(result).end()
+    }).catch((err)=>{
+        res.status(505).end(err.message)
+    })
+})
+
+app.get('/getapptdetails/:visitid',(req,res,next)=>{
+    getapptdetails(req.params.visitid).then((result)=>{
+        console.log(result)
+        res.status(200).json(result).end()
     }).catch((err)=>{
         res.status(505).end(err.message)
     })

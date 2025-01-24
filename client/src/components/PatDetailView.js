@@ -1,18 +1,20 @@
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Container, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography } from "@mui/material"
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import DeleteIcon from '@mui/icons-material/Delete'
 import { useState } from "react"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format} from 'date-fns'
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Container, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography } from "@mui/material"
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import DeleteIcon from '@mui/icons-material/Delete'
+import { useQuery } from "@tanstack/react-query"
+import axios from "axios"
 
-export default function PatDetailView({patDetail, setIsDetailViewing}){
+export default function PatDetailView({oldPatDetail, setIsDetailViewing, serviceList}){
     const [expanded, setExpanded] = useState('documentAcc')
 
     const handleAccChange = (panel) =>(event, isExpanded) =>{
         setExpanded(isExpanded?panel:false);
     }
-
+    //get age out of dob
     function getAge(dob){
         const year = differenceInCalendarYears(Date.now(),Date.parse(dob))
         if (year >= 5) return `${year} Y`
@@ -24,13 +26,38 @@ export default function PatDetailView({patDetail, setIsDetailViewing}){
         const day = differenceInCalendarDays(Date.now(), Date.parse(dob)) 
         if (month <1) return `${day} D`
     }
-
+    //get appointment start and end time out scheduledatetime
     function getAppointment(startDT, endDT){
         const start = format(Date.parse(startDT), 'hh:mm aa')
         const end = format(Date.parse(endDT), 'hh:mm aa @ ccc, do MMM yyyy')
         return `${start} - ${end}`
     }
-
+    //get selected services
+    function selServiceGen(fullservices,selectedToBeIncluded){
+        if(selectedToBeIncluded.length === 0){return []}
+        else{
+            return fullservices.filter((service)=>{
+                var filt = false
+                selectedToBeIncluded.forEach(selectedid => {
+                    if(service.serviceid === selectedid){filt = true}
+                });
+                return filt
+            })
+        }
+    }
+    //Get detail visit description; in mean time, use the old data
+    //TODO: figure out how to use isError 
+    const {isFetching, isPlaceholderData, isError, isSuccess, data:patDetail} = useQuery({
+        queryKey: ['patDetail', oldPatDetail.visitid],
+        queryFn: ()=>(axios.get(`http://localhost:8080/getapptdetails/${oldPatDetail.visitid}`)),
+        select: (response)=>({
+            ...response.data[0],
+            services: selServiceGen(serviceList,response.data[0].serviceids)
+        }),
+        placeholderData: (response)=>({data:[{
+            ...oldPatDetail
+        }]}) 
+    })
     return <Box sx={{paddingX:5, paddingY:2}}>
         <Toolbar>
             <Button sx={{justifyContent:'start'}} variant="contained" onClick={()=>(setIsDetailViewing(false))}>Back</Button>
@@ -48,7 +75,7 @@ export default function PatDetailView({patDetail, setIsDetailViewing}){
             <TextField label='Appointment Date' variant="standard" 
                 slotProps={{input:{readOnly:true}}}
                 sx={{flexGrow:2}}
-                value={getAppointment(patDetail.start, patDetail.end)}/>
+                value={getAppointment(patDetail.scheduledatetime_start, patDetail.scheduledatetime_end)}/>
         </Box>
         <Box>
             <Accordion expanded={expanded === 'serviceList'} onChange={handleAccChange('serviceList')} sx={{m:2}}>

@@ -9,34 +9,19 @@ import {useFormik} from 'formik'
 import { array, number, object, string } from 'yup'
 import PatDetailView from "./PatDetailView"
 import {format, sub} from 'date-fns'
-import {useQuery} from '@tanstack/react-query'
+import {useQuery, useQueryClient} from '@tanstack/react-query'
 import axios from 'axios'
 
 export default function MainPlayground(){
     //main state hub
     const [isRegistering, setIsRegistering] = useState(false)
     const [isDetailViewing, setIsDetailViewing] = useState(false)
-    const [events, setEvents] = useState([])
     const [activeStep, setActiveStep] = useState(0)
     const [listSelectedServices, setListSelectedServices] = useState([])
     const [curEvents, setCurEvents] = useState()
-    const [isLoading,setIsLoading] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [snackHandle, setSnackHandle] = useState({snackopen:false,snackmessage:''})
-
-    //get selected services
-    function selServiceGen(fullservices,selectedToBeIncluded){
-        if(selectedToBeIncluded.length === 0){return []}
-        else{
-            return fullservices.filter((service)=>{
-                var filt = false
-                selectedToBeIncluded.forEach(selectedid => {
-                    if(service.serviceid === selectedid){filt = true}
-                });
-                return filt
-            })
-        }
-    }
+    const queryClient = useQueryClient()
 
     //get services; set infinity for stay time; load on page load
     const {isPending: isServiceListLoading, isError: isServiceListError, isSuccess: isServiceListSuccess, data:serviceList} = useQuery(
@@ -52,18 +37,18 @@ export default function MainPlayground(){
         enabled : !!serviceList,
         select: (response)=>{
             //console.log(response.data)
-            const x = response.data.map((value)=>({
+            return response.data.map((value)=>({
                     title : `${value.firstname} ${value.lastname}`,
                     start : value.scheduledatetime_start,
                     end: value.scheduledatetime_end,
                     backgroundColor: blue[800], 
                     borderColor:blue[800],
                     extendedProps : {...value,
-                        services: selServiceGen(serviceList,value.services)
+                        serviceids : value.serviceids,
+                        servicenames : value.servicenames,
+                        visitid: value.visitid 
                     }
                 }))
-            console.log(x)
-            return x
         }
     })
 
@@ -94,21 +79,8 @@ export default function MainPlayground(){
             sched_end : format(curEvents.end,'yyyy-MM-dd HH:mm:ss')
         },{headers:{"Content-Type":"multipart/form-data"}}).then((res)=>{
             if(res.status===200){
-                setEvents((prev)=>([...prev,{...curEvents, editable:false, 
-                        backgroundColor: blue[800], borderColor:blue[800],
-                        title : `${formik.values.firstname} ${formik.values.lastname} - ${serviceForTitle}`,
-                        extendedProps:{
-                            department : 'Radiology',
-                            firstname : formik.values.firstname,
-                            lastname : formik.values.lastname,
-                            sex: formik.values.sex,
-                            age_y : formik.values.age_yrs,
-                            age_m : formik.values.age_mns,
-                            age_d : formik.values.age_dys,
-                            services : [...listSelectedServices]
-                        }
-                    }]))
                 //it is saved
+                queryClient.invalidateQueries({queryKey:['get_appointments','all']})
                 setIsSaving(false)
                 setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Saved Successfully'}))
                 setIsRegistering(false)
@@ -171,7 +143,7 @@ export default function MainPlayground(){
         }
     })
 
-    if(isServiceListError){
+    if(isServiceListError || isGetApptsError){
         setSnackHandle((prev)=>({...prev,snackopen:true, snackmessage:"Network Error"}))
         return (<>
             {/* to show error message and empty schedule */}
@@ -187,7 +159,9 @@ export default function MainPlayground(){
 
     return (
         <>
-            {isServiceListLoading ? <CircularProgress/>:
+            {isServiceListLoading ? <Box sx={{display:'flex',justifyContent:'center',alignItems:'center'}}>
+                    <CircularProgress/>
+                </Box>:
             <>
             {(isRegistering && isServiceListSuccess) ? 
                 <Box display={'flex'} flexDirection={'column'}>
@@ -214,8 +188,9 @@ export default function MainPlayground(){
                         })}
                     </Stepper>
                     {activeStep===0 ? 
-                            <PatientRegForm serviceList={serviceList} curEvents={curEvents} setCurEvents={setCurEvents} formik={formik} isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
-                                events={events} setEvents={setEvents} 
+                            <PatientRegForm serviceList={serviceList} curEvents={curEvents} setCurEvents={setCurEvents} 
+                                formik={formik} isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
+                                events={getAppts} 
                                 listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
                         : activeStep ===1 ?
                             <PatientRegUploader/>
@@ -255,7 +230,7 @@ export default function MainPlayground(){
                 isDetailViewing ?
                 <>
                     {/* for Detail Viewing */}
-                    <PatDetailView patDetail={curEvents} setIsDetailViewing={setIsDetailViewing}/>
+                    <PatDetailView oldPatDetail={curEvents} setIsDetailViewing={setIsDetailViewing} serviceList={serviceList}/>
                 </>:
                 <>
                     {/* for schedule view */}

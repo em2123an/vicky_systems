@@ -32,15 +32,16 @@ export default function ScheduleCal({setCurEvents, setIsRegistering, setIsDetail
         setIsDetailViewing(true)
         setIsRegistering(false)
         setCurEvents({
-            start: info.event.startStr,
-            end: info.event.endStr,
+            scheduledatetime_start: info.event.startStr,
+            scheduledatetime_end: info.event.endStr,
             department : info.event.extendedProps.department,
             firstname : info.event.extendedProps.firstname,
             lastname : info.event.extendedProps.lastname,
             sex : info.event.extendedProps.sex,
             dob : info.event.extendedProps.dob,
-            services : [...info.event.extendedProps.services],
-            editable : false,
+            serviceids : info.event.extendedProps.serviceids,
+            servicenames : info.event.extendedProps.servicenames,
+            visitid: info.event.extendedProps.visitid
         })
     }
 
