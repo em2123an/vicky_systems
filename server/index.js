@@ -85,7 +85,6 @@ async function getapptdetails(visitid){
                 `,
                 [visitid] 
             )
-            console.log(result)
             resol(result)
         } catch (err) {
             console.log(err.message)
@@ -111,14 +110,38 @@ async function makeappointment(fields = null, files=null) {
             var {insertId: visitId} = await conn.query(
                 'INSERT INTO visits(patientid, scheduledatetime_start, scheduledatetime_end) VALUES (CAST(? AS UNSIGNED INTEGER) ,?,?)',
                 [patientId, fields.sched_start, fields.sched_end])
-            console.log(fields)
-            console.log(typeof(fields))
             fields['services[]'].forEach(async (selectedserviceid) => {
                 var {insertId: visitservicelineid} = await conn.query(
                     'INSERT INTO visit_service_line (visitid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), ?)',
                     [visitId,selectedserviceid]
                 )
             }); 
+            await conn.commit() //final commit
+            resol()
+        } catch (err) {
+            conn.rollback()
+            console.log(err.message)
+            rejec(err)
+        } finally{
+            if(conn) conn.release()
+        }
+    })
+}
+
+//upload files
+async function putfileuploads(fields = null, files=null) {
+    return new Promise(async (resol, rejec)=>{
+        var conn;
+        try {
+            const fileUploadData = {
+                fields,
+                'filepath' : `${__dirname}/fileuploads/${files.uploadedDocument[0].newFilename}`,
+                'mimetype': files.uploadedDocument[0].mimetype,
+                'uploadedat': Date.now(),
+            }
+            conn = await pool.getConnection()
+            await conn.beginTransaction() //starts transaction
+            
             await conn.commit() //final commit
             resol()
         } catch (err) {
@@ -142,7 +165,6 @@ app.get('/getservicesdata',(req,res,next)=>{
 
 app.get('/getappointments',(req,res,next)=>{
     getappointments().then((result)=>{
-        console.log(result)
         res.status(200).send(result).end()
     }).catch((err)=>{
         res.status(505).end(err.message)
@@ -151,7 +173,6 @@ app.get('/getappointments',(req,res,next)=>{
 
 app.get('/getapptdetails/:visitid',(req,res,next)=>{
     getapptdetails(req.params.visitid).then((result)=>{
-        console.log(result)
         res.status(200).json(result).end()
     }).catch((err)=>{
         res.status(505).end(err.message)
@@ -172,6 +193,35 @@ app.post('/makeappointment',(req,res,next)=>{
             res.sendStatus(505)
             res.end()
         })
+    })
+})
+
+app.post('/putfileuploads',(req,res,next)=>{
+    const form = new formidable.IncomingForm({uploadDir:`${__dirname}/fileuploads/`, keepExtensions: true})
+    form.parse(req,(err,fields,files)=>{
+        if(err){
+            next(err)
+            return
+        }
+        try {
+            const fileUploadData = {
+                ...fields,
+                'filePath' : `/fileuploads/${files.uploadedDocument[0].newFilename}`,
+                'mimetype': files.uploadedDocument[0].mimetype,
+                'uploadedAt': Date.now(),
+            }
+            console.log(JSON.stringify(fileUploadData))
+            res.sendStatus(200).end()
+        } catch (error) {
+            res.sendStatus(505).end()
+        }
+        // putfileuploads(fields, files).then(()=>{
+        //     res.sendStatus(200)
+        //     res.end()
+        // }).catch((err)=>{
+        //     res.sendStatus(505)
+        //     res.end()
+        // })
     })
 })
 

@@ -4,10 +4,22 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {useState} from 'react'
 import {format} from 'date-fns'
+import {useMutation} from '@tanstack/react-query'
+import axios from 'axios'
 
 export default function PatientRegUploader({fullwidth=false}){
     const [documentUploadType, setDocumentUploadType] = useState("Prescription")
     const [fileUploaded, setFileUploaded] = useState([])
+
+    const mutupload = useMutation({
+        mutationKey:['documentuploads'],
+        mutationFn: (newUpload)=>(
+            axios.post('http://localhost:8080/putfileuploads',newUpload,
+                {headers:{"Content-Type":"multipart/form-data"}})
+            ),
+        onSuccess: ()=>{
+        }
+    })
 
     const VisuallyHiddenInput = styled('input')({
         clip: 'rect(0 0 0 0)',
@@ -20,9 +32,14 @@ export default function PatientRegUploader({fullwidth=false}){
         whiteSpace: 'nowrap',
         width: 1,
       });
+
+    if(mutupload.isError){
+        console.log(mutupload.error)
+    }
     
     return <Container>
-        <Box sx={{width:fullwidth?'100%':'70%', m:1, p:2, border:1, borderRadius:'8px', display:'flex', flexDirection:'column', justifyContent:'start', alignItems:'start'}}>
+        <Box
+            sx={{width:fullwidth?'100%':'70%', m:1, p:2, border:1, borderRadius:'8px', display:'flex', flexDirection:'column', justifyContent:'start', alignItems:'start'}}>
             <FormControl variant='outlined'>
                 <FormLabel id="document-upload-radio-buttons-group" sx={{textAlign:'start'}}>Select Type of Document</FormLabel>
                 <RadioGroup
@@ -47,9 +64,13 @@ export default function PatientRegUploader({fullwidth=false}){
                 tabIndex={-1}
                 startIcon={<CloudUploadIcon/>} 
                 >Upload File
-                <VisuallyHiddenInput type='file' onChange={(event)=>{
+                <VisuallyHiddenInput name='uploadedfile' type='file' onChange={(event)=>{
                     //event.target.files
                     //file list object used to upload files on server
+                    const formData = new FormData()
+                    formData.append('documentUploadType', documentUploadType)
+                    formData.append('uploadedDocument', event.target.files[0])
+                    mutupload.mutate(formData)
                     setFileUploaded((prev)=>[...prev,{
                         documentUploadType,
                         file : event.target.files[0]
