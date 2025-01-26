@@ -31,18 +31,7 @@ export default function ScheduleCal({setCurEvents, setIsRegistering, setIsDetail
     function handleEventClick(info){
         setIsDetailViewing(true)
         setIsRegistering(false)
-        setCurEvents({
-            scheduledatetime_start: info.event.startStr,
-            scheduledatetime_end: info.event.endStr,
-            department : info.event.extendedProps.department,
-            firstname : info.event.extendedProps.firstname,
-            lastname : info.event.extendedProps.lastname,
-            sex : info.event.extendedProps.sex,
-            dob : info.event.extendedProps.dob,
-            serviceids : info.event.extendedProps.serviceids,
-            servicenames : info.event.extendedProps.servicenames,
-            visitid: info.event.extendedProps.visitid
-        })
+        setCurEvents({...info.event.extendedProps})
     }
 
     return <FullCalendar height={'100vh'}

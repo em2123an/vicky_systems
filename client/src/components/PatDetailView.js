@@ -2,17 +2,24 @@ import { useState } from "react"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format} from 'date-fns'
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Container, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography } from "@mui/material"
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Backdrop, CircularProgress, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
 import axios from "axios"
 
 export default function PatDetailView({oldPatDetail, setIsDetailViewing, serviceList}){
     const [expanded, setExpanded] = useState('documentAcc')
+    const queryClient = useQueryClient()
 
     const handleAccChange = (panel) =>(event, isExpanded) =>{
         setExpanded(isExpanded?panel:false);
+    }
+    //check for files or null
+    function checkForFile(fileuploads){
+        if(Boolean(fileuploads) && Boolean(fileuploads.files)){
+            return fileuploads.files
+        }else{return []}
     }
     //get age out of dob
     function getAge(dob){
@@ -47,7 +54,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
     }
     //Get detail visit description; in mean time, use the old data
     //TODO: figure out how to use isError 
-    const {isFetching, isPlaceholderData, isError, isSuccess, data:patDetail} = useQuery({
+    const {isRefetching:isPatDetailLoading, isPlaceholderData, isError, isSuccess, data:patDetail} = useQuery({
         queryKey: ['patDetail', oldPatDetail.visitid],
         queryFn: ()=>(axios.get(`http://localhost:8080/getapptdetails/${oldPatDetail.visitid}`)),
         select: (response)=>({
@@ -58,11 +65,39 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
             ...oldPatDetail
         }]}) 
     })
-    return <Box sx={{paddingX:5, paddingY:2}}>
+    //mutation call to upload files
+    const mutupload = useMutation({
+        mutationKey:['documentuploads'],
+        mutationFn: (newUpload)=>(
+            axios.post('http://localhost:8080/postfileuploads',newUpload,
+                {headers:{"Content-Type":"multipart/form-data"}})
+            ),
+        onSuccess: ()=>{
+            queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
+        }
+    })
+
+    //handle upload click on patientRegUploader
+    function handleUploadClick(documentUploadType, event){
+        //file list object used to upload files on server
+        const formData = new FormData()
+        formData.append('visitid', patDetail.visitid)
+        formData.append('documentUploadType', documentUploadType)
+        formData.append('uploadedDocument', event.target.files[0])
+        mutupload.mutate(formData)            
+    }
+    //handle delete file click on patientRegUploader
+    //TODO:delete request to server
+    function handleFileDeleteClick(){
+
+    }
+    //list of file uploaded to be displayed
+    //TODO: query to get files or with optimistic updata
+    return <Box sx={{paddingX:2, paddingY:2}}>
         <Toolbar>
             <Button sx={{justifyContent:'start'}} variant="contained" onClick={()=>(setIsDetailViewing(false))}>Back</Button>
         </Toolbar>
-        <Box m={3}  display={'flex'} flexWrap={'wrap'} justifyContent={'space-between'}>
+        <Box marginX={3} marginY={1}  display={'flex'} flexWrap={'wrap'} justifyContent={'space-between'}>
             <TextField label='Patient Name' variant="standard" 
                 slotProps={{input:{readOnly:true}}}
                 value={`${patDetail.firstname} ${patDetail.lastname}`} />
@@ -78,6 +113,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                 value={getAppointment(patDetail.scheduledatetime_start, patDetail.scheduledatetime_end)}/>
         </Box>
         <Box>
+            {/* Accordion for service lists */}
             <Accordion expanded={expanded === 'serviceList'} onChange={handleAccChange('serviceList')} sx={{m:2}}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="serviceList">
                     <Typography component='span'>Service Status</Typography>
@@ -97,15 +133,24 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                         :<Typography component={'span'}>No Services Selected</Typography>}
                 </AccordionDetails>
             </Accordion>
+            {/* Accordion for uploaded documents */}
             <Accordion sx={{m:2}} expanded={expanded === 'documentAcc'} onChange={handleAccChange('documentAcc')}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="documents">
                     <Typography component='span'>Documents</Typography>
                 </AccordionSummary>
                 <AccordionDetails sx={{marginRight:2}}>
                     {/* to see documents */}
-                    <PatientRegUploader fullwidth={true} />
+                    <Backdrop
+                            sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
+                            open={mutupload.isPending||(mutupload.isSuccess&&isPatDetailLoading)}
+                            onClick={()=>{}}>
+                    <CircularProgress/>
+                </Backdrop>
+                    <PatientRegUploader fullwidth={true} handleUploadClick={handleUploadClick} 
+                        handleFileDeleteClick={handleFileDeleteClick} fileUploaded={checkForFile(patDetail.fileuploads)}/>
                 </AccordionDetails>
             </Accordion>
+            {/* Accordion for payment details */}
             <Accordion sx={{m:2}} expanded={expanded === 'paymentAcc'} onChange={handleAccChange('paymentAcc')}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="paymentAcc">
                     <Typography component='span'>Payment Details</Typography>

@@ -1,25 +1,14 @@
 import { styled } from '@mui/material/styles'
-import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardMedia, CardActions} from '@mui/material'
+import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardMedia, CardActions, CardContent} from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {useState} from 'react'
-import {format} from 'date-fns'
-import {useMutation} from '@tanstack/react-query'
-import axios from 'axios'
+import {format, toDate} from 'date-fns'
+import PDFSvg from '../../assets/images/pdf_svg.svg'
 
-export default function PatientRegUploader({fullwidth=false}){
+export default function PatientRegUploader({fullwidth=false, handleUploadClick, 
+    handleFileDeleteClick, fileUploaded}){
     const [documentUploadType, setDocumentUploadType] = useState("Prescription")
-    const [fileUploaded, setFileUploaded] = useState([])
-
-    const mutupload = useMutation({
-        mutationKey:['documentuploads'],
-        mutationFn: (newUpload)=>(
-            axios.post('http://localhost:8080/putfileuploads',newUpload,
-                {headers:{"Content-Type":"multipart/form-data"}})
-            ),
-        onSuccess: ()=>{
-        }
-    })
 
     const VisuallyHiddenInput = styled('input')({
         clip: 'rect(0 0 0 0)',
@@ -32,12 +21,9 @@ export default function PatientRegUploader({fullwidth=false}){
         whiteSpace: 'nowrap',
         width: 1,
       });
-
-    if(mutupload.isError){
-        console.log(mutupload.error)
-    }
     
     return <Container>
+        {/* for choosing the document type and file */}
         <Box
             sx={{width:fullwidth?'100%':'70%', m:1, p:2, border:1, borderRadius:'8px', display:'flex', flexDirection:'column', justifyContent:'start', alignItems:'start'}}>
             <FormControl variant='outlined'>
@@ -65,42 +51,35 @@ export default function PatientRegUploader({fullwidth=false}){
                 startIcon={<CloudUploadIcon/>} 
                 >Upload File
                 <VisuallyHiddenInput name='uploadedfile' type='file' onChange={(event)=>{
-                    //event.target.files
-                    //file list object used to upload files on server
-                    const formData = new FormData()
-                    formData.append('documentUploadType', documentUploadType)
-                    formData.append('uploadedDocument', event.target.files[0])
-                    mutupload.mutate(formData)
-                    setFileUploaded((prev)=>[...prev,{
-                        documentUploadType,
-                        file : event.target.files[0]
-                    }])
-                    console.log(event.target.files[0])
-                    console.log(typeof(event.target.files.file))
+                    handleUploadClick(documentUploadType, event)
                 }}/>
             </Button>
         </Box>
+        {/* List of uploaded or selected documents */}
         <Box>
-            {fileUploaded && <List>
+            {fileUploaded.length!==0 && <List>
                 {fileUploaded.map((value, index)=>{
                     //show image for prescription
                     //make link for screening and attachment
-                    return <ListItem>
+                    if(value.mimetype.includes('application/pdf')){
+                        //treat as link 
+                        console.log('pdf')
+                    }else if (value.mimetype.includes('image')){
+                        //treat as image
+                        console.log('image')
+                    }
+                    return <ListItem key={index}>
                         <Card sx={{width:fullwidth?'100%':'64%'}}>
-                            <CardHeader title={value.documentUploadType} subheader={format(new Date(Date.now()),'hh:mm:ss (eee) MMM do yyyy')}/>
-                            <CardMedia
-                                sx={{height:'94px'}}
-                                src={value.file}
-                                />
-                            <CardActions sx={{display:'flex', justifyContent:'end'}}>
+                            <CardHeader sx={{m:0, p:0, paddingLeft:2}} title={value.documentUploadType} subheader={format(toDate(value.uploadedAt),'hh:mm:ss (eee) MMM do yyyy')}/>
+                            <CardContent sx={{m:0, p:0, paddingLeft:2}}>
+                                <img src={PDFSvg} height={100} alt='pdf' />
+                            </CardContent>
+                            <CardActions sx={{m:0, p:1,display:'flex', justifyContent:'end'}}>
                                 <Button variant='outlined' size='small' color='error' startIcon={<DeleteIcon />} onClick={()=>{
                                         //send the delete command
                                         //delete the document
-                                        setFileUploaded((prev)=>{
-                                            var newArr = prev
-                                            newArr.splice(index,1)
-                                            return [...newArr]
-                                        })
+                                        //TODO:figure out what to send as an argument
+                                        handleFileDeleteClick(index)
                                     }}>Delete</Button>
                             </CardActions>
                         </Card>

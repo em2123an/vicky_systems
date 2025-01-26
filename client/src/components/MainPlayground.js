@@ -1,13 +1,13 @@
 import {useState, useRef} from "react"
 import SchedulerFront from "./SchedulerFront"
 import PatientRegForm from "./registeration/PatientRegForm"
-import {Step, StepLabel, Stepper, Button, Stack, Box, CircularProgress, Snackbar, Backdrop} from "@mui/material"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
+import PatDetailView from "./PatDetailView"
+import {Step, StepLabel, Stepper, Button, Stack, Box, CircularProgress, Snackbar, Backdrop} from "@mui/material"
 import { blue } from '@mui/material/colors'
 import {useFormik} from 'formik'
 import { array, number, object, string } from 'yup'
-import PatDetailView from "./PatDetailView"
 import {format, sub} from 'date-fns'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
 import axios from 'axios'
@@ -21,10 +21,12 @@ export default function MainPlayground(){
     const [curEvents, setCurEvents] = useState()
     const [isSaving, setIsSaving] = useState(false)
     const [snackHandle, setSnackHandle] = useState({snackopen:false,snackmessage:''})
+    const [fileUploaded, setFileUploaded] = useState([])
     const queryClient = useQueryClient()
 
     //get services; set infinity for stay time; load on page load
-    const {isPending: isServiceListLoading, isError: isServiceListError, isSuccess: isServiceListSuccess, data:serviceList} = useQuery(
+    const {isPending: isServiceListLoading, isError: isServiceListError, 
+        isSuccess: isServiceListSuccess, data:serviceList} = useQuery(
         {queryKey:['get_services'], 
         queryFn: ()=>(axios.get('http://localhost:8080/getservicesdata')),
         gcTime : 'Infinity',
@@ -43,11 +45,7 @@ export default function MainPlayground(){
                     end: value.scheduledatetime_end,
                     backgroundColor: blue[800], 
                     borderColor:blue[800],
-                    extendedProps : {...value,
-                        serviceids : value.serviceids,
-                        servicenames : value.servicenames,
-                        visitid: value.visitid 
-                    }
+                    extendedProps : {...value}
                 }))
         }
     })
@@ -99,7 +97,7 @@ export default function MainPlayground(){
             setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Failed to Save'}))
         })
     }
-
+    //formik setup
     const formik = useFormik({
         initialValues :{
             firstname:'',
@@ -142,6 +140,24 @@ export default function MainPlayground(){
             }
         }
     })
+
+    //handle upload click on patientRegUploader
+    //TODO: to save it on state until a final save and Exit
+    function handleUploadClick(documentUploadType, event){
+        setFileUploaded((prev)=>[...prev,{
+            documentUploadType,
+            file : event.target.files[0]
+        }])
+    }
+    //handle file delete click on patientRegUploader
+    //TODO: just remove it from state
+    function handleFileDeleteClick(index){
+        setFileUploaded((prev)=>{
+            var newArr = prev
+            newArr.splice(index,1)
+            return [...newArr]
+        })
+    }
 
     if(isServiceListError || isGetApptsError){
         setSnackHandle((prev)=>({...prev,snackopen:true, snackmessage:"Network Error"}))
@@ -193,7 +209,8 @@ export default function MainPlayground(){
                                 events={getAppts} 
                                 listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
                         : activeStep ===1 ?
-                            <PatientRegUploader/>
+                            <PatientRegUploader handleUploadClick={handleUploadClick} handleFileDeleteClick={handleFileDeleteClick}
+                                fileUploaded={fileUploaded}/>
                         : <PatientRegPayment listSelectedServices={listSelectedServices} />
                     }
                     <Stack direction={'row-reverse'} spacing={3} p={2} sx={{justifyContent:'center', flexShrink:2}}>
