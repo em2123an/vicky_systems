@@ -1,14 +1,17 @@
 import { styled } from '@mui/material/styles'
-import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardMedia, CardActions, CardContent} from '@mui/material'
+import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardMedia, CardActions, CardContent, Link, Stack} from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {useState} from 'react'
 import {format, toDate} from 'date-fns'
+import {FullScreen} from 'react-full-screen'
+import Zoom from 'react-medium-image-zoom'
 import PDFSvg from '../../assets/images/pdf_svg.svg'
 
 export default function PatientRegUploader({fullwidth=false, handleUploadClick, 
     handleFileDeleteClick, fileUploaded}){
     const [documentUploadType, setDocumentUploadType] = useState("Prescription")
+    const [isFullScreen, setIsFullScreen] = useState(false)
 
     const VisuallyHiddenInput = styled('input')({
         clip: 'rect(0 0 0 0)',
@@ -61,18 +64,37 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
                 {fileUploaded.map((value, index)=>{
                     //show image for prescription
                     //make link for screening and attachment
-                    if(value.mimetype.includes('application/pdf')){
+                    if(null){if(value.mimetype.includes('application/pdf')){
                         //treat as link 
                         console.log('pdf')
                     }else if (value.mimetype.includes('image')){
                         //treat as image
                         console.log('image')
-                    }
+                    }}
                     return <ListItem key={index}>
                         <Card sx={{width:fullwidth?'100%':'64%'}}>
-                            <CardHeader sx={{m:0, p:0, paddingLeft:2}} title={value.documentUploadType} subheader={format(toDate(value.uploadedAt),'hh:mm:ss (eee) MMM do yyyy')}/>
+                            <CardHeader sx={{m:0, p:0, paddingLeft:2}} title={value.documentUploadType}
+                                subheader={value.uploadedAt?format(toDate(value.uploadedAt),'hh:mm:ss (eee) MMM do yyyy'):"Waiting for upload..."}
+                                 />
                             <CardContent sx={{m:0, p:0, paddingLeft:2}}>
-                                <img src={PDFSvg} height={100} alt='pdf' />
+                                {value.mimetype.includes('application/pdf')?
+                                    <Link rel='noopener noreferrer' target='_blank' href={value.filepath?`http://localhost:8080/${value.filepath}`:''}>
+                                        <img src={PDFSvg} height={100} alt='pdf' />
+                                    </Link>
+                                    : value.mimetype.includes('image')?
+                                    <FullScreen active={isFullScreen}>
+                                        <Stack direction={'column'}>
+                                            <Button onClick={()=>{setIsFullScreen(false)}}>X</Button>
+                                            <Zoom>
+                                                <img src={value.filepath?`http://localhost:8080/${value.filepath}`:''}
+                                                 alt='attached images' onClick={()=>{setIsFullScreen(true)}}/>
+                                            </Zoom>
+                                        </Stack>
+                                    </FullScreen>:
+                                    <Link rel='noopener noreferrer' target='_blank' href={''}>
+                                        <img src={PDFSvg} height={100} alt='unknown' />
+                                    </Link>
+                                }
                             </CardContent>
                             <CardActions sx={{m:0, p:1,display:'flex', justifyContent:'end'}}>
                                 <Button variant='outlined' size='small' color='error' startIcon={<DeleteIcon />} onClick={()=>{

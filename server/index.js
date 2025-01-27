@@ -119,7 +119,7 @@ async function makeappointment(fields = null, files=null) {
                 )
             }); 
             await conn.commit() //final commit
-            resol()
+            resol(visitId)
         } catch (err) {
             conn.rollback()
             console.log(err.message)
@@ -135,27 +135,32 @@ async function postfileuploads(fields = null, files=null) {
     return new Promise(async (resol, rejec)=>{
         var conn;
         try {
-            const visitid = fields.visitid[0]
-            const fileUploadData = {
-                'documentUploadType':fields.documentUploadType[0],
-                'filePath' : `/documents/${files.uploadedDocument[0].newFilename}`,
-                'mimetype': files.uploadedDocument[0].mimetype,
-                'uploadedAt': Date.now(),
-            }
             conn = await pool.getConnection()
             await conn.beginTransaction() //starts transaction
+            const visitid = fields.visitid[0]
+            var fileUploadDatas = []
+            for (const documentUploadType in files){
+                files[documentUploadType].forEach((spfile)=>{
+                const fileUploadData = [{
+                        'documentUploadType':documentUploadType,
+                        'filePath' : `/documents/${spfile.newFilename}`,
+                        'mimetype': spfile.mimetype,
+                        'uploadedAt': Date.now(),
+                    }]
+                fileUploadDatas = [...fileUploadDatas, ...fileUploadData]
+                })}
             var prevFileDate = await conn.query('SELECT visits.fileuploads FROM visits WHERE visits.visitid = ?',[visitid])
             //if the column fileuploads is not null or fileuploads.files is not empty
             if(Boolean(prevFileDate[0].fileuploads) && Boolean(prevFileDate[0].fileuploads.files)){
                 //append on previous
                 await conn.query(
                     'UPDATE visits SET fileuploads = ? WHERE visits.visitid = ?',
-                    [JSON.stringify({'files': [...prevFileDate[0].fileuploads.files, fileUploadData]}),visitid]
-                )
+                    [JSON.stringify({'files': [...prevFileDate[0].fileuploads.files,...fileUploadDatas]}),visitid]
+                    )
             }else{
                 await conn.query(
                     'UPDATE visits SET fileuploads = ? WHERE visits.visitid = ?',
-                    [JSON.stringify({'files': [fileUploadData]}), visitid]
+                    [JSON.stringify({'files': [...fileUploadDatas]}), visitid]
                 )  
             }
             await conn.commit() //final commit
@@ -202,9 +207,8 @@ app.post('/makeappointment',(req,res,next)=>{
             next(err)
             return
         }
-        makeappointment(fields, files).then(()=>{
-            res.sendStatus(200)
-            res.end()
+        makeappointment(fields, files).then((visitId)=>{
+            res.status(200).send({'visitid':visitId}).end()
         }).catch((err)=>{
             res.sendStatus(505)
             res.end()
@@ -223,7 +227,7 @@ app.post('/postfileuploads',(req,res,next)=>{
         }
         postfileuploads(fields, files).then(()=>{
             res.sendStatus(200).end()
-         }).catch((err)=>{
+        }).catch((err)=>{
             console.log(err)
             res.sendStatus(505).end()
         })

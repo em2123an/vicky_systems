@@ -9,7 +9,7 @@ import { blue } from '@mui/material/colors'
 import {useFormik} from 'formik'
 import { array, number, object, string } from 'yup'
 import {format, sub} from 'date-fns'
-import {useQuery, useQueryClient} from '@tanstack/react-query'
+import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query'
 import axios from 'axios'
 
 export default function MainPlayground(){
@@ -49,6 +49,17 @@ export default function MainPlayground(){
                 }))
         }
     })
+    //mutation call to upload files
+    const mutupload = useMutation({
+        mutationKey:['documentuploads'],
+        mutationFn: (newUpload)=>(
+            axios.post('http://localhost:8080/postfileuploads',newUpload,
+                {headers:{"Content-Type":"multipart/form-data"}})
+            ),
+        onSuccess: ()=>{
+            
+        }
+    })
 
     const steps =['Booking Information', 'Necessary Documents', 'Payment Details']
     
@@ -57,7 +68,6 @@ export default function MainPlayground(){
     function handleEventSaveExit(){
         isSaveExit.current = false //reset isSaveExit ref
         setIsSaving(true)
-        const serviceForTitle = listSelectedServices.reduce((accumulator, curr, curIndex, org)=>(accumulator + curr.servicename + ((curIndex === (org.length-1))?"":", ")), "")
         //to get DOB
         const resultdate = sub(Date.now(),{
             years:formik.values.age_yrs,
@@ -75,14 +85,33 @@ export default function MainPlayground(){
             services : listSelectedServices.map((ser)=>(ser.serviceid)),
             sched_start : format(curEvents.start,'yyyy-MM-dd HH:mm:ss'),
             sched_end : format(curEvents.end,'yyyy-MM-dd HH:mm:ss')
-        },{headers:{"Content-Type":"multipart/form-data"}}).then((res)=>{
+        },{headers:{"Content-Type":"multipart/form-data"}}).then(async (res)=>{
             if(res.status===200){
-                //it is saved
+                //file uploads are done after appointment is made
+                //TODO: make file upload and apointment in one transaction
+                if(fileUploaded.length!==0){
+                    //if there are files to be uploaded
+                    try {
+                        const formData = new FormData()
+                        formData.append('visitid', res.data.visitid)
+                        fileUploaded.forEach((value)=>{
+                            formData.append(value.documentUploadType, value.file)
+                        })
+                        await mutupload.mutateAsync(formData)
+                        setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Saved Successfully'}))               
+                    } catch (error) {
+                        setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Appointment Made; Failed to Upload files'}))
+                    } 
+                }else{
+                    //no files to be uploaded
+                    setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Saved Successfully'}))
+                }
+                //it is saved 
                 queryClient.invalidateQueries({queryKey:['get_appointments','all']})
                 setIsSaving(false)
-                setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Saved Successfully'}))
                 setIsRegistering(false)
                 setListSelectedServices([])
+                setFileUploaded([])
                 formik.handleReset()
                 setActiveStep(0)
             }else if(res.status===505){
@@ -144,9 +173,13 @@ export default function MainPlayground(){
     //handle upload click on patientRegUploader
     //TODO: to save it on state until a final save and Exit
     function handleUploadClick(documentUploadType, event){
+        console.log(event.target.files[0])
         setFileUploaded((prev)=>[...prev,{
             documentUploadType,
-            file : event.target.files[0]
+            file : event.target.files[0],
+            mimetype : event.target.files[0].type,
+            filepath: '',
+            uploadAt: ''
         }])
     }
     //handle file delete click on patientRegUploader
@@ -234,6 +267,7 @@ export default function MainPlayground(){
 
                         <Button variant='contained' onClick={()=>{
                                 if(activeStep===0){
+                                    setFileUploaded([])
                                     setIsRegistering(false)
                                     setListSelectedServices([])
                                     formik.handleReset()
