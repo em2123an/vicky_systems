@@ -32,6 +32,7 @@
     "react-full-screen": "^1.1.1",
     "react-medium-image-zoom": "^5.2.13",
     "react-scripts": "5.0.1",
+    "react-zoom-pan-pinch": "^3.6.1",
     "web-vitals": "^2.1.4",
     "yup": "^1.6.1"
   },

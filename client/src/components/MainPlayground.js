@@ -178,7 +178,7 @@ export default function MainPlayground(){
             documentUploadType,
             file : event.target.files[0],
             mimetype : event.target.files[0].type,
-            filepath: '',
+            filePath: '',
             uploadAt: ''
         }])
     }

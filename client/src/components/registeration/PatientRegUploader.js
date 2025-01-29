@@ -1,18 +1,49 @@
 import { styled } from '@mui/material/styles'
-import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardMedia, CardActions, CardContent, Link, Stack} from '@mui/material'
+import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardMedia, CardActions, CardContent, Link, Stack, Modal, IconButton} from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import DeleteIcon from '@mui/icons-material/Delete'
-import {useState} from 'react'
+import {useCallback, useState} from 'react'
 import {format, toDate} from 'date-fns'
-import {FullScreen} from 'react-full-screen'
+import {FullScreen, useFullScreenHandle} from 'react-full-screen'
+import {TransformWrapper,TransformComponent, useControls} from 'react-zoom-pan-pinch'
+import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
+import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded';
+import CenterFocusWeakRoundedIcon from '@mui/icons-material/CenterFocusWeakRounded';
+import Rotate90DegreesCcwOutlinedIcon from '@mui/icons-material/Rotate90DegreesCcwOutlined';
+import Rotate90DegreesCwOutlinedIcon from '@mui/icons-material/Rotate90DegreesCwOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import RestoreOutlinedIcon from '@mui/icons-material/RestoreOutlined';
 import Zoom from 'react-medium-image-zoom'
 import PDFSvg from '../../assets/images/pdf_svg.svg'
 
 export default function PatientRegUploader({fullwidth=false, handleUploadClick, 
     handleFileDeleteClick, fileUploaded}){
     const [documentUploadType, setDocumentUploadType] = useState("Prescription")
-    const [isFullScreen, setIsFullScreen] = useState(false)
+    const [openImageModal, setOpenImageModal] = useState(false)
+    const [srcImageModal, setSrcImageModal] = useState('')
+    const [rotateDeg, setRotateDeg] = useState(0)
+    const fullimage = useFullScreenHandle()
 
+    const handleOpenImageModal = (src)=>{
+        setOpenImageModal(true)
+        setSrcImageModal(src)
+        console.log('open done')
+    }
+    const handleCloseImageModal = ()=>{
+        setOpenImageModal(false)
+        setSrcImageModal('')
+    }
+    const handleImgClockwiseRot = useCallback(()=>{
+        setRotateDeg((prevRotation)=>{
+            return ((prevRotation + 90)%360)
+        })
+    },[setRotateDeg])
+    const handleImgAntiClockwiseRot = useCallback(()=>{
+        setRotateDeg((prevRotation)=>{
+            return ((prevRotation - 90)%360)
+        })
+    },[setRotateDeg])
+    
     const VisuallyHiddenInput = styled('input')({
         clip: 'rect(0 0 0 0)',
         clipPath: 'inset(50%)',
@@ -25,10 +56,60 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
         width: 1,
       });
     
+    const ImageViewerModalControls = ()=>{
+        const {zoomIn,zoomOut,centerView,resetTransform} = useControls()
+
+        return <Box sx={{display:'flex', justifyContent:'right'}}>
+            <IconButton onClick={()=>handleImgAntiClockwiseRot()}><Rotate90DegreesCcwOutlinedIcon/></IconButton>
+            <IconButton onClick={()=>handleImgClockwiseRot()}><Rotate90DegreesCwOutlinedIcon/></IconButton>
+            <IconButton onClick={()=>zoomIn()}><ZoomInRoundedIcon/></IconButton>
+            <IconButton onClick={()=>zoomOut()}><ZoomOutRoundedIcon/></IconButton>
+            <IconButton onClick={()=>{
+                resetTransform()
+                setRotateDeg(0)
+                }}><RestoreOutlinedIcon/></IconButton>
+            <IconButton onClick={()=>centerView()}><CenterFocusWeakRoundedIcon/></IconButton>
+            <IconButton onClick={()=>{
+                handleCloseImageModal()
+                setRotateDeg(0)
+                }}><CloseOutlinedIcon/></IconButton>
+        </Box>
+    }
+    
+    const ImageViewerModal = () =>{
+        console.log('inside image viewer')
+        return <Modal
+            open={openImageModal && (Boolean(srcImageModal))}
+            onClose={handleCloseImageModal}
+        >
+            <Box sx={{p:2,boxShadow:24, position:'absolute', top:'0%', left:'10%'}}>{/* define style of modal here */}
+                <TransformWrapper
+                    minScale={0.2}
+                    initialPositionX={200}
+                    initialPositionY={100}
+                    centerOnInit={true}
+                    initialScale={1}
+                >
+                    {({zoomIn, zoomOut, resetTransform, centerView, ...rest})=>(
+                        <>
+                            <ImageViewerModalControls/>
+                            <TransformComponent
+                                wrapperStyle={{height:'100vh', width:'100vh'}}
+                                contentStyle={{display:'flex',justifyContent:'center', alignItems:'center', height:'100vh', width:'100%'}}>
+                                <img alt='attached modal' src={srcImageModal} style={{objectFit:'contain',maxWidth:'100wh',maxHeight:'100vh', transform:`rotate(${rotateDeg}deg)`}} />
+                            </TransformComponent>
+                        </> 
+                    )}
+                </TransformWrapper>
+            </Box>
+        </Modal>
+    }
+    
     return <Container>
         {/* for choosing the document type and file */}
         <Box
-            sx={{width:fullwidth?'100%':'70%', m:1, p:2, border:1, borderRadius:'8px', display:'flex', flexDirection:'column', justifyContent:'start', alignItems:'start'}}>
+            sx={{width:fullwidth?'100%':'70%', m:1, p:2, border:1, borderRadius:'8px',
+            display:'flex', flexDirection:'column', justifyContent:'start', alignItems:'start'}}>
             <FormControl variant='outlined'>
                 <FormLabel id="document-upload-radio-buttons-group" sx={{textAlign:'start'}}>Select Type of Document</FormLabel>
                 <RadioGroup
@@ -58,10 +139,12 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
                 }}/>
             </Button>
         </Box>
-        {/* List of uploaded or selected documents */}
+        {/* Image viewing modal */}
+        <ImageViewerModal/>
         <Box>
             {fileUploaded.length!==0 && <List>
                 {fileUploaded.map((value, index)=>{
+                    var imageSrc = value.filePath?`http://localhost:8080${value.filePath}`:''
                     //show image for prescription
                     //make link for screening and attachment
                     if(null){if(value.mimetype.includes('application/pdf')){
@@ -78,19 +161,15 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
                                  />
                             <CardContent sx={{m:0, p:0, paddingLeft:2}}>
                                 {value.mimetype.includes('application/pdf')?
-                                    <Link rel='noopener noreferrer' target='_blank' href={value.filepath?`http://localhost:8080/${value.filepath}`:''}>
+                                    <Link rel='noopener noreferrer' target='_blank' href={value.filepath?`http://localhost:8080${value.filepath}`:''}>
                                         <img src={PDFSvg} height={100} alt='pdf' />
                                     </Link>
                                     : value.mimetype.includes('image')?
-                                    <FullScreen active={isFullScreen}>
-                                        <Stack direction={'column'}>
-                                            <Button onClick={()=>{setIsFullScreen(false)}}>X</Button>
-                                            <Zoom>
-                                                <img src={value.filepath?`http://localhost:8080/${value.filepath}`:''}
-                                                 alt='attached images' onClick={()=>{setIsFullScreen(true)}}/>
-                                            </Zoom>
-                                        </Stack>
-                                    </FullScreen>:
+                                    <>
+                                        {console.log(value)}
+                                        <img src={imageSrc} width={100} height={100} alt='attached images' 
+                                            onClick={()=>{handleOpenImageModal(imageSrc)}}/>
+                                    </>:
                                     <Link rel='noopener noreferrer' target='_blank' href={''}>
                                         <img src={PDFSvg} height={100} alt='unknown' />
                                     </Link>
