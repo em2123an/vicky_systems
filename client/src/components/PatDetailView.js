@@ -18,7 +18,10 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
     //check for files or null
     function checkForFile(fileuploads){
         if(Boolean(fileuploads) && Boolean(fileuploads.files)){
-            return fileuploads.files
+            return fileuploads.files.map((file)=>({
+                ...file,
+                filePath : `http://localhost:8080${file.filePath}`, 
+                isLocalLoad:false}))
         }else{return []}
     }
     //get age out of dob

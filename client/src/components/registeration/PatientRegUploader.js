@@ -27,7 +27,6 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
     const handleOpenImageModal = (src)=>{
         setOpenImageModal(true)
         setSrcImageModal(src)
-        console.log('open done')
     }
     const handleCloseImageModal = ()=>{
         setOpenImageModal(false)
@@ -43,6 +42,20 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
             return ((prevRotation - 90)%360)
         })
     },[setRotateDeg])
+
+    function getURL(isLocalLoad, filePath, file){
+        try {
+            if(!isLocalLoad){return filePath}
+            else{
+                //filePath is base64encoded
+                const urlForFile = window.URL.createObjectURL(file)
+                window.URL.revokeObjectURL(urlForFile)
+                return urlForFile
+            }
+        } catch (error) {
+            return ''
+        }
+    }
     
     const VisuallyHiddenInput = styled('input')({
         clip: 'rect(0 0 0 0)',
@@ -69,20 +82,16 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
                 setRotateDeg(0)
                 }}><RestoreOutlinedIcon/></IconButton>
             <IconButton onClick={()=>centerView()}><CenterFocusWeakRoundedIcon/></IconButton>
-            <IconButton onClick={()=>{
-                handleCloseImageModal()
-                setRotateDeg(0)
-                }}><CloseOutlinedIcon/></IconButton>
+            <IconButton onClick={()=>{handleCloseImageModal()}}><CloseOutlinedIcon/></IconButton>
         </Box>
     }
     
     const ImageViewerModal = () =>{
-        console.log('inside image viewer')
         return <Modal
             open={openImageModal && (Boolean(srcImageModal))}
             onClose={handleCloseImageModal}
         >
-            <Box sx={{p:2,boxShadow:24, position:'absolute', top:'0%', left:'10%'}}>{/* define style of modal here */}
+            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper' ,position:'absolute', top:'0%', left:'10%'}}>{/* define style of modal here */}
                 <TransformWrapper
                     minScale={0.2}
                     initialPositionX={200}
@@ -144,7 +153,7 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
         <Box>
             {fileUploaded.length!==0 && <List>
                 {fileUploaded.map((value, index)=>{
-                    var imageSrc = value.filePath?`http://localhost:8080${value.filePath}`:''
+                    var imagePDFSrc = value.filePath?value.filePath:''
                     //show image for prescription
                     //make link for screening and attachment
                     if(null){if(value.mimetype.includes('application/pdf')){
@@ -161,14 +170,15 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
                                  />
                             <CardContent sx={{m:0, p:0, paddingLeft:2}}>
                                 {value.mimetype.includes('application/pdf')?
-                                    <Link rel='noopener noreferrer' target='_blank' href={value.filepath?`http://localhost:8080${value.filepath}`:''}>
+                                    <Link rel='noopener noreferrer' target='_blank' onClick={()=>{
+                                        window.URL.createObjectURL()
+                                    }}>
                                         <img src={PDFSvg} height={100} alt='pdf' />
                                     </Link>
                                     : value.mimetype.includes('image')?
                                     <>
-                                        {console.log(value)}
-                                        <img src={imageSrc} width={100} height={100} alt='attached images' 
-                                            onClick={()=>{handleOpenImageModal(imageSrc)}}/>
+                                        <img src={imagePDFSrc} width={100} height={100} alt='attached images' 
+                                            onClick={()=>{handleOpenImageModal(imagePDFSrc)}}/>
                                     </>:
                                     <Link rel='noopener noreferrer' target='_blank' href={''}>
                                         <img src={PDFSvg} height={100} alt='unknown' />

@@ -173,14 +173,29 @@ export default function MainPlayground(){
     //handle upload click on patientRegUploader
     //TODO: to save it on state until a final save and Exit
     function handleUploadClick(documentUploadType, event){
-        console.log(event.target.files[0])
-        setFileUploaded((prev)=>[...prev,{
-            documentUploadType,
-            file : event.target.files[0],
-            mimetype : event.target.files[0].type,
-            filePath: '',
-            uploadAt: ''
-        }])
+        var selectedFile = event.target.files[0]
+        var reader = new FileReader()
+        reader.onload = ()=>{
+            setFileUploaded((prev)=>[...prev,{
+                documentUploadType,
+                file : selectedFile,
+                mimetype : selectedFile.type,
+                filePath: reader.result,
+                uploadAt: '',
+                isLocalLoad: true
+            }])
+        }
+        reader.onerror = ()=>{
+            setFileUploaded((prev)=>[...prev,{
+                documentUploadType,
+                file : selectedFile,
+                mimetype : selectedFile.type,
+                filePath: '',
+                uploadAt: '',
+                isLocalLoad: true
+            }])
+        }
+        reader.readAsDataURL(selectedFile)
     }
     //handle file delete click on patientRegUploader
     //TODO: just remove it from state
