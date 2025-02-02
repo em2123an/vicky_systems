@@ -24,6 +24,14 @@ export default function MainPlayground(){
     const [fileUploaded, setFileUploaded] = useState([])
     const queryClient = useQueryClient()
 
+    //make title
+    function makeTitle(firstname, lastname, servicenames){
+        //TODO: create struction for making a title
+        //limit it to some chr numbers
+        //call it inside 'getting appoints query'
+        return 
+    }
+
     //get services; set infinity for stay time; load on page load
     const {isPending: isServiceListLoading, isError: isServiceListError, 
         isSuccess: isServiceListSuccess, data:serviceList} = useQuery(
@@ -39,8 +47,9 @@ export default function MainPlayground(){
         enabled : !!serviceList,
         select: (response)=>{
             //console.log(response.data)
+            //TODO:use value.servicenames to display services on title
             return response.data.map((value)=>({
-                    title : `${value.firstname} ${value.lastname}`,
+                    title : `${value.firstname} ${value.lastname}`, //call make title
                     start : value.scheduledatetime_start,
                     end: value.scheduledatetime_end,
                     backgroundColor: blue[800], 
