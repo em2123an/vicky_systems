@@ -1,10 +1,9 @@
 import { styled } from '@mui/material/styles'
-import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardMedia, CardActions, CardContent, Link, Stack, Modal, IconButton} from '@mui/material'
+import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardActions, CardContent, Link, Modal, IconButton} from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {useCallback, useState} from 'react'
 import {format, toDate} from 'date-fns'
-import {FullScreen, useFullScreenHandle} from 'react-full-screen'
 import {TransformWrapper,TransformComponent, useControls} from 'react-zoom-pan-pinch'
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
 import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded';
@@ -13,7 +12,6 @@ import Rotate90DegreesCcwOutlinedIcon from '@mui/icons-material/Rotate90DegreesC
 import Rotate90DegreesCwOutlinedIcon from '@mui/icons-material/Rotate90DegreesCwOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import RestoreOutlinedIcon from '@mui/icons-material/RestoreOutlined';
-import Zoom from 'react-medium-image-zoom'
 import PDFSvg from '../../assets/images/pdf_svg.svg'
 
 export default function PatientRegUploader({fullwidth=false, handleUploadClick, 
@@ -22,7 +20,6 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
     const [openImageModal, setOpenImageModal] = useState(false)
     const [srcImageModal, setSrcImageModal] = useState('')
     const [rotateDeg, setRotateDeg] = useState(0)
-    const fullimage = useFullScreenHandle()
 
     const handleOpenImageModal = (src)=>{
         setOpenImageModal(true)
@@ -43,17 +40,21 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
         })
     },[setRotateDeg])
 
-    function getURL(isLocalLoad, filePath, file){
+    function openNewPDFTab(isLocalLoad, filePath, file){
         try {
-            if(!isLocalLoad){return filePath}
-            else{
+            if(!isLocalLoad){
                 //filePath is base64encoded
+                if(!window.open(filePath,'_blank','noopener noreferrer')){throw new Error()}
+            }
+            else{
+                //using file
                 const urlForFile = window.URL.createObjectURL(file)
+                if(!window.open(urlForFile,'_blank','noopener noreferrer')){throw new Error()}
                 window.URL.revokeObjectURL(urlForFile)
-                return urlForFile
             }
         } catch (error) {
-            return ''
+            console.log(error)
+            return
         }
     }
     
@@ -170,9 +171,7 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
                                  />
                             <CardContent sx={{m:0, p:0, paddingLeft:2}}>
                                 {value.mimetype.includes('application/pdf')?
-                                    <Link rel='noopener noreferrer' target='_blank' onClick={()=>{
-                                        window.URL.createObjectURL()
-                                    }}>
+                                    <Link component={'button'} onClick={()=>{openNewPDFTab(value.isLocalLoad,value.filePath, value.file)}} rel='noopener noreferrer' target='_blank'>
                                         <img src={PDFSvg} height={100} alt='pdf' />
                                     </Link>
                                     : value.mimetype.includes('image')?
