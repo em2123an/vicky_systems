@@ -207,12 +207,14 @@ app.post('/makeappointment',(req,res,next)=>{
             next(err)
             return
         }
-        makeappointment(fields, files).then((visitId)=>{
-            res.status(200).send({'visitid':visitId}).end()
-        }).catch((err)=>{
-            res.sendStatus(505)
-            res.end()
-        })
+        console.log(fields)
+        console.log(files)
+        // makeappointment(fields, files).then((visitId)=>{
+        //     res.status(200).send({'visitid':visitId}).end()
+        // }).catch((err)=>{
+        //     res.sendStatus(505)
+        //     res.end()
+        // })
     })
 })
 

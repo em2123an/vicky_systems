@@ -1,16 +1,17 @@
 import { useState } from "react";
 import BookingPaymentCor from "./BookingPaymentCor";
+import {DataGrid} from '@mui/x-data-grid'
 import { Table, Box, Autocomplete, Stack, TextField, Typography, InputAdornment, Button, Dialog, DialogTitle, DialogActions, DialogContent, FormControl, Radio, FormLabel, RadioGroup, FormControlLabel, TableContainer, TableHead, TableRow, TableCell, TableBody } from "@mui/material";
 
 export default function PatientRegPayment({listSelectedServices}){
-    const [discountPercent, setDiscountPercent] = useState(0)
+    const [paymentRecords, setPaymentRecords] = useState([])
+    const [discountRecords, setDiscountRecords] = useState([])
     const [discounter, setDiscounter] = useState(null)
+    const [discountPercent, setDiscountPercent] = useState(0)
     const [openPaymentDialog,setOpenPaymentDialog] = useState(false)
     const [paymentOption, setPaymentOption] = useState('CASH')
     const [remark, setRemark] = useState()
     const [amount, setAmount] = useState(null)
-    const [paymentRecords, setPaymentRecords] = useState([])
-    const [discountRecords, setDiscountRecords] = useState([])
     
     const DISCOUNTERS = ['Dr. 111', 'Owner']
 
@@ -41,7 +42,7 @@ export default function PatientRegPayment({listSelectedServices}){
     return <Stack direction={'column'}>
         <Stack direction={'column'} paddingX={2}>
             <Typography variant="h6" textAlign={'start'}>Charge Details</Typography>
-            <BookingPaymentCor isDiscounterOn={true} discountPercent={handleDiscounts()} listSelectedServices={listSelectedServices}/>
+            <BookingPaymentCor isDiscounterOn={true} isTableMode={false} discountPercent={handleDiscounts()} listSelectedServices={listSelectedServices}/>
         </Stack>
         <Stack direction={'column'} p={2}>
             <Typography variant="h6" textAlign={'start'}>Discounts</Typography>
