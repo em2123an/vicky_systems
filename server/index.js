@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const formidable = require('formidable')
+const bodyParser = require('body-parser')
 const fs = require('fs')
 const path = require('path')
 const mariadb = require('mariadb')
@@ -14,6 +15,10 @@ const app = express()
 app.use(cors())
 //serve static files
 app.use('/documents',express.static(path.join(__dirname,'fileuploads')))
+
+//request parsers
+const jsonParser = bodyParser.json()
+const urlencodedParser = bodyParser.urlencoded({extended:false})
 
 //create a pool of connections
 const pool = mariadb.createPool({
@@ -33,6 +38,22 @@ async function getservicesdata(){
         try {
             conn = await pool.getConnection()
             var result = await conn.query('SELECT * FROM services')
+            resol(result)
+        } catch (err) {
+            rejec(err)
+        } finally {
+            if(conn) conn.release()
+        }
+    })
+}
+
+//get list of services
+async function getdiscounters(){
+    return new Promise(async (resol,rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            var result = await conn.query('SELECT * FROM discounters')
             resol(result)
         } catch (err) {
             rejec(err)
@@ -98,7 +119,7 @@ async function getapptdetails(visitid){
 }
 
 //to make appointment with patient info and service 
-async function makeappointment(fields = null, files=null) {
+async function makeappointment(fields = null) {
     return new Promise(async (resol, rejec)=>{
         var conn;
         try {
@@ -112,12 +133,44 @@ async function makeappointment(fields = null, files=null) {
             var {insertId: visitId} = await conn.query(
                 'INSERT INTO visits(patientid, scheduledatetime_start, scheduledatetime_end) VALUES (CAST(? AS UNSIGNED INTEGER) ,?,?)',
                 [patientId, fields.sched_start, fields.sched_end])
-            fields['services[]'].forEach(async (selectedserviceid) => {
-                var {insertId: visitservicelineid} = await conn.query(
+            fields['services'].forEach(async (selectedserviceid) => {
+                await conn.query(
                     'INSERT INTO visit_service_line (visitid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), ?)',
                     [visitId,selectedserviceid]
                 )
-            }); 
+            });
+            //decide when to create an invoice
+            var {insertId:invoiceid}= await conn.query(
+                'INSERT INTO invoices (visitid) VALUES (CAST(? AS UNSIGNED INTEGER))',
+                [visitId]
+            )
+            if(fields.discountRecords){
+                //add services and discounts to invoice_service_line
+                fields.discountRecords.forEach(async (discountRecord)=>{
+                    await conn.query(
+                        `INSERT INTO invoice_service_line (invoiceid, serviceid, discounterid, discountpercent) 
+                            VALUES (CAST(? AS UNSIGNED INTEGER),CAST(? AS UNSIGNED INTEGER),CAST(? AS UNSIGNED INTEGER),CAST(? AS DECIMAL))`,
+                        [invoiceid,discountRecord.serviceid,discountRecord.discounterid,discountRecord.discountpercent]
+                    )        
+                })   
+            }else{
+                //no discount; add service to invoice_service_line
+                fields['services'].forEach(async (selectedserviceid) => {
+                    await conn.query(
+                        'INSERT INTO invoice_service_line (invoiceid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), ?)',
+                        [invoiceid,selectedserviceid]
+                    )
+                });
+            }
+            if(fields.paymentRecords){
+                fields.paymentRecords.forEach(async (paymentRecord)=>{
+                    await conn.query(
+                        `INSERT INTO payments (invoiceid, paymenttype, paymentamount,remark) 
+                            VALUES (CAST(? AS UNSIGNED INTEGER),?,CAST(? AS DECIMAL),?)`,
+                        [invoiceid,paymentRecord.paymenttype, paymentRecord.paymentamount, paymentRecord.remark?paymentRecord.remark:null]
+                    )
+                })
+            }
             await conn.commit() //final commit
             resol(visitId)
         } catch (err) {
@@ -184,6 +237,14 @@ app.get('/getservicesdata',(req,res,next)=>{
     })
 })
 
+app.get('/getdiscounters',(req,res,next)=>{
+    getdiscounters().then((result)=>{
+        res.status(200).send(result).end()
+    }).catch((err)=>{
+        res.status(505).end(err.message)
+    })
+})
+
 app.get('/getappointments',(req,res,next)=>{
     getappointments().then((result)=>{
         res.status(200).send(result).end()
@@ -199,22 +260,13 @@ app.get('/getapptdetails/:visitid',(req,res,next)=>{
         res.status(505).end(err.message)
     })
 })
-
-app.post('/makeappointment',(req,res,next)=>{
-    const form = new formidable.IncomingForm()
-    form.parse(req,(err,fields,files)=>{
-        if(err){
-            next(err)
-            return
-        }
-        console.log(fields)
-        console.log(files)
-        // makeappointment(fields, files).then((visitId)=>{
-        //     res.status(200).send({'visitid':visitId}).end()
-        // }).catch((err)=>{
-        //     res.sendStatus(505)
-        //     res.end()
-        // })
+app.post('/makeappointment', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
+    console.log(req.body)
+    makeappointment(req.body).then((visitId)=>{
+        res.status(200).send({'visitid':visitId}).end()
+    }).catch((err)=>{
+        res.sendStatus(505)
+        res.end()
     })
 })
 

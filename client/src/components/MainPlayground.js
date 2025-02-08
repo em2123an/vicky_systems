@@ -22,6 +22,8 @@ export default function MainPlayground(){
     const [isSaving, setIsSaving] = useState(false)
     const [snackHandle, setSnackHandle] = useState({snackopen:false,snackmessage:''})
     const [fileUploaded, setFileUploaded] = useState([])
+    const [paymentRecords, setPaymentRecords] = useState([])
+    const [discountRecords, setDiscountRecords] = useState([])
     const queryClient = useQueryClient()
 
     //make title
@@ -32,6 +34,17 @@ export default function MainPlayground(){
         return 
     }
 
+    //to call when registeration ends and resetting the forms and values
+    function resetForEnd(){
+        setIsRegistering(false)
+        formik.handleReset()
+        setListSelectedServices([])
+        setFileUploaded([])
+        setDiscountRecords([])
+        setActiveStep(0)
+        setPaymentRecords([])
+    }
+
     //get services; set infinity for stay time; load on page load
     const {isPending: isServiceListLoading, isError: isServiceListError, 
         isSuccess: isServiceListSuccess, data:serviceList} = useQuery(
@@ -40,6 +53,16 @@ export default function MainPlayground(){
         gcTime : 'Infinity',
         select : (response)=>(response.data),
         })
+    
+    //get services; set infinity for stay time; load on page load
+    const {isPending: isDiscounterListLoading, isError: isDiscounterListError, 
+        isSuccess: isDiscounterListSuccess, data:discounters} = useQuery(
+        {queryKey:['get_discounters'], 
+        queryFn: ()=>(axios.get('http://localhost:8080/getdiscounters')),
+        gcTime : 'Infinity',
+        select : (response)=>(response.data),
+        })
+    
     //get all the appointments
     const {isPending: isGetApptsLoading,isError: isGetApptsError, isSuccess: isGetApptsSuccess, data:getAppts} = useQuery({
         queryKey:['get_appointments','all'],
@@ -93,8 +116,14 @@ export default function MainPlayground(){
             dob : format(resultdate,'yyyy-MM-dd'),
             services : listSelectedServices.map((ser)=>(ser.serviceid)),
             sched_start : format(curEvents.start,'yyyy-MM-dd HH:mm:ss'),
-            sched_end : format(curEvents.end,'yyyy-MM-dd HH:mm:ss')
-        },{headers:{"Content-Type":"multipart/form-data"}}).then(async (res)=>{
+            sched_end : format(curEvents.end,'yyyy-MM-dd HH:mm:ss'),
+            paymentRecords: paymentRecords,
+            discountRecords: discountRecords.map((discountRecord)=>({
+                discounterid: discountRecord.discounter.discounterid,
+                discountpercent: discountRecord.discountPercent,
+                serviceid: discountRecord.service.serviceid 
+            })),
+        },{headers:{"Content-Type":"application/x-www-form-urlencoded"}}).then(async (res)=>{
             if(res.status===200){
                 //file uploads are done after appointment is made
                 //TODO: make file upload and apointment in one transaction
@@ -118,11 +147,7 @@ export default function MainPlayground(){
                 //it is saved 
                 queryClient.invalidateQueries({queryKey:['get_appointments','all']})
                 setIsSaving(false)
-                setIsRegistering(false)
-                setListSelectedServices([])
-                setFileUploaded([])
-                formik.handleReset()
-                setActiveStep(0)
+                resetForEnd()
             }else if(res.status===505){
                 setIsSaving(false)
                 setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Connection Error! Failed to Save'}))
@@ -268,7 +293,10 @@ export default function MainPlayground(){
                         : activeStep ===1 ?
                             <PatientRegUploader handleUploadClick={handleUploadClick} handleFileDeleteClick={handleFileDeleteClick}
                                 fileUploaded={fileUploaded}/>
-                        : <PatientRegPayment listSelectedServices={listSelectedServices} />
+                        : <PatientRegPayment listSelectedServices={listSelectedServices} discounters={discounters} 
+                                paymentRecords={paymentRecords} setPaymentRecords={setPaymentRecords}
+                                discountRecords={discountRecords} setDiscountRecords={setDiscountRecords}
+                            />
                     }
                     <Stack direction={'row-reverse'} spacing={3} p={2} sx={{justifyContent:'center', flexShrink:2}}>
                         <Button variant='contained' onClick={(event)=>{
@@ -291,10 +319,7 @@ export default function MainPlayground(){
 
                         <Button variant='contained' onClick={()=>{
                                 if(activeStep===0){
-                                    setFileUploaded([])
-                                    setIsRegistering(false)
-                                    setListSelectedServices([])
-                                    formik.handleReset()
+                                    resetForEnd()
                                     return
                                 }else{
                                     setActiveStep((prev)=>(prev-1))

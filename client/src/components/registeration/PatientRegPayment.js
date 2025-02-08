@@ -1,20 +1,18 @@
 import { useState } from "react";
 import BookingPaymentCor from "./BookingPaymentCor";
-import {DataGrid} from '@mui/x-data-grid'
 import { Table, Box, Autocomplete, Stack, TextField, Typography, InputAdornment, Button, Dialog, DialogTitle, DialogActions, DialogContent, FormControl, Radio, FormLabel, RadioGroup, FormControlLabel, TableContainer, TableHead, TableRow, TableCell, TableBody } from "@mui/material";
 
-export default function PatientRegPayment({listSelectedServices}){
-    const [paymentRecords, setPaymentRecords] = useState([])
-    const [discountRecords, setDiscountRecords] = useState([])
+export default function PatientRegPayment({listSelectedServices, discounters=[],
+        setDiscountRecords=()=>{},discountRecords=[],setPaymentRecords=()=>{},paymentRecords=[]}){
     const [discounter, setDiscounter] = useState(null)
     const [discountPercent, setDiscountPercent] = useState(0)
     const [openPaymentDialog,setOpenPaymentDialog] = useState(false)
     const [paymentOption, setPaymentOption] = useState('CASH')
     const [remark, setRemark] = useState()
     const [amount, setAmount] = useState(null)
+    const [checkedServiceList, setCheckedServiceList] = useState([])
     
-    const DISCOUNTERS = ['Dr. 111', 'Owner']
-
+    
     function handleClosePaymentDialog(){
         setOpenPaymentDialog(false)
         setAmount(null)
@@ -24,25 +22,17 @@ export default function PatientRegPayment({listSelectedServices}){
 
     function handleSavePayment(){
         setPaymentRecords((prev)=>([...prev,{
-            paymentoption : paymentOption,
+            paymenttype : paymentOption,
             paymentamount : amount,
             paymentremark : remark
         }]))
         handleClosePaymentDialog()
     }
 
-    function handleDiscounts(){
-        if(discountRecords.length === 0){
-            return discountPercent
-        } else{
-            return discountRecords.reduce((accumulator,cur)=>(accumulator + parseFloat(cur.discountPercent)),0)
-        }
-    }
-
     return <Stack direction={'column'}>
         <Stack direction={'column'} paddingX={2}>
             <Typography variant="h6" textAlign={'start'}>Charge Details</Typography>
-            <BookingPaymentCor isDiscounterOn={true} isTableMode={false} discountPercent={handleDiscounts()} listSelectedServices={listSelectedServices}/>
+            <BookingPaymentCor isMiniTable={false} listSelectedServices={listSelectedServices} discountRecords={discountRecords} checkedServiceList={checkedServiceList} setCheckedServiceList={setCheckedServiceList}/>
         </Stack>
         <Stack direction={'column'} p={2}>
             <Typography variant="h6" textAlign={'start'}>Discounts</Typography>
@@ -53,7 +43,8 @@ export default function PatientRegPayment({listSelectedServices}){
                             setDiscounter(newvalue)
                         }}
                     id="discounters_choice"
-                    options={DISCOUNTERS}
+                    options={discounters}
+                    getOptionLabel={(discounter)=>(`${discounter.firstname} ${discounter.lastname}`)}
                     renderInput={(params)=><TextField {...params} label={'Discounted by:'} sx={{minWidth:'200px'}} slotProps={{inputLabel:{shrink:true},}}/>}
                 />
                 <TextField variant="outlined" label="Discount Percentage" name="discountpercent" sx={{width:'150px'}}
@@ -67,12 +58,22 @@ export default function PatientRegPayment({listSelectedServices}){
                                 return setDiscountPercent(value)
                             }
                         }}} />
-                <Button variant="outlined" disabled={discounter==null} onClick={()=>{
-                        setDiscountRecords((prev)=>[...prev,{
-                            discounter : discounter,
-                            discountPercent : discountPercent
-                        }])
-                    }}>Save Discount</Button>
+                <Button variant="outlined" disabled={discounter==null || !Boolean(checkedServiceList)} 
+                    onClick={()=>{
+                        var newRecord =[]
+                        var oldRecord = [...discountRecords]
+                        checkedServiceList.forEach((checkedService)=>{
+                            var recordExcCur = oldRecord.filter((oldRecord)=>!(oldRecord.service.serviceid===checkedService.serviceid))
+                            newRecord = [...recordExcCur, {
+                                discounter: discounter,
+                                discountPercent: discountPercent,
+                                service: checkedService
+                            }]
+                            oldRecord = [...newRecord]
+                        })
+                        setDiscountRecords([...newRecord])
+                    }                           
+                }>Add Discount</Button>
             </Stack>
             {/* lists all discounts */}
             {discountRecords.length!==0 && <TableContainer>
@@ -82,14 +83,16 @@ export default function PatientRegPayment({listSelectedServices}){
                             <TableCell/>
                             <TableCell>Discounter</TableCell>
                             <TableCell>Discount Percent</TableCell>
+                            <TableCell>Discounted Service</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {discountRecords.map((disc,index)=>(
                             <TableRow>
                                 <TableCell>{index+1}</TableCell>
-                                <TableCell>{disc.discounter}</TableCell>
+                                <TableCell>{`${disc.discounter.firstname} ${disc.discounter.lastname}`}</TableCell>
                                 <TableCell>{disc.discountPercent}</TableCell>
+                                <TableCell>{disc.service.servicename}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -115,7 +118,7 @@ export default function PatientRegPayment({listSelectedServices}){
                             {paymentRecords.map((payment,index)=>{
                                 return <TableRow key={index}>
                                     <TableCell>{index+1}</TableCell>
-                                    <TableCell>{`${payment.paymentoption} - ${payment.paymentamount}`}</TableCell>
+                                    <TableCell>{`${payment.paymenttype} - ${payment.paymentamount}`}</TableCell>
                                     <TableCell/>
                                     <TableCell>{payment.paymentremark}</TableCell>
                                 </TableRow>
