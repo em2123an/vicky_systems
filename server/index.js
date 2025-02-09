@@ -108,6 +108,22 @@ async function getapptdetails(visitid){
                 `,
                 [visitid] 
             )
+            var discountDetail = await conn.query(
+                `SELECT d.discounterid, isl.discountpercent, s.serviceid, i.createdat 
+                FROM invoices AS i INNER JOIN invoice_service_line AS isl ON i.invoiceid = isl.invoiceid
+                    INNER JOIN discounters AS d ON isl.discounterid = d.discounterid
+                    INNER JOIN services AS s ON isl.serviceid = s.serviceid 
+                WHERE i.visitid=?`,
+                [visitid]
+            )
+            var paymentDetail = await conn.query(
+                `SELECT p.paymenttype, p.paymentamount, p.remark, p.recievedat
+                FROM invoices AS i INNER JOIN payments AS p ON i.invoiceid = p.invoiceid
+                WHERE i.visitid=?`,
+                [visitid]
+            )
+            result[0].discountDetail = discountDetail
+            result[0].paymentDetail = paymentDetail
             resol(result)
         } catch (err) {
             console.log(err.message)
@@ -125,56 +141,60 @@ async function makeappointment(fields = null) {
         try {
             conn = await pool.getConnection()
             await conn.beginTransaction() //starts transaction
-            //insert into patients table and get patient id
-            var {insertId: patientId} = await conn.query(
-                'INSERT INTO patients(firstname, lastname, dob, sex, phonenumber) VALUES (?,?,?,?,?)',
-                [fields.firstname, fields.lastname, fields.dob, fields.sex, fields.mobileno])
-            //insert into visits and visit_service_lines
-            var {insertId: visitId} = await conn.query(
-                'INSERT INTO visits(patientid, scheduledatetime_start, scheduledatetime_end) VALUES (CAST(? AS UNSIGNED INTEGER) ,?,?)',
-                [patientId, fields.sched_start, fields.sched_end])
-            fields['services'].forEach(async (selectedserviceid) => {
-                await conn.query(
-                    'INSERT INTO visit_service_line (visitid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), ?)',
-                    [visitId,selectedserviceid]
+            try{//insert into patients table and get patient id
+                var {insertId: patientId} = await conn.query(
+                    'INSERT INTO patients(firstname, lastname, dob, sex, phonenumber) VALUES (?,?,?,?,?)',
+                    [fields.firstname, fields.lastname, fields.dob, fields.sex, fields.mobileno])
+                //insert into visits and visit_service_lines
+                var {insertId: visitId} = await conn.query(
+                    'INSERT INTO visits(patientid, scheduledatetime_start, scheduledatetime_end) VALUES (CAST(? AS UNSIGNED INTEGER) ,?,?)',
+                    [patientId, fields.sched_start, fields.sched_end])
+                //decide when to create an invoice
+                var {insertId:invoiceid}= await conn.query(
+                    'INSERT INTO invoices (visitid) VALUES (CAST(? AS UNSIGNED INTEGER))',
+                    [visitId]
                 )
-            });
-            //decide when to create an invoice
-            var {insertId:invoiceid}= await conn.query(
-                'INSERT INTO invoices (visitid) VALUES (CAST(? AS UNSIGNED INTEGER))',
-                [visitId]
-            )
-            if(fields.discountRecords){
-                //add services and discounts to invoice_service_line
-                fields.discountRecords.forEach(async (discountRecord)=>{
+                for(var selectedserviceid of fields.services){
+                    //add service to visit_service_line
                     await conn.query(
-                        `INSERT INTO invoice_service_line (invoiceid, serviceid, discounterid, discountpercent) 
-                            VALUES (CAST(? AS UNSIGNED INTEGER),CAST(? AS UNSIGNED INTEGER),CAST(? AS UNSIGNED INTEGER),CAST(? AS DECIMAL))`,
-                        [invoiceid,discountRecord.serviceid,discountRecord.discounterid,discountRecord.discountpercent]
-                    )        
-                })   
-            }else{
-                //no discount; add service to invoice_service_line
-                fields['services'].forEach(async (selectedserviceid) => {
+                        'INSERT INTO visit_service_line (visitid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), CAST(? AS UNSIGNED INTEGER))',
+                        [visitId,selectedserviceid]
+                    )
+                    //add service to invoice_service_line
                     await conn.query(
-                        'INSERT INTO invoice_service_line (invoiceid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), ?)',
+                        'INSERT INTO invoice_service_line (invoiceid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), CAST(? AS UNSIGNED INTEGER))',
                         [invoiceid,selectedserviceid]
                     )
-                });
+                }
+                //if discount exists
+                if(fields.discountRecords){
+                    //add services and discounts to invoice_service_line
+                    for(var discountRecord of fields.discountRecords){
+                        await conn.query(
+                            `UPDATE invoice_service_line SET discounterid=CAST(? AS UNSIGNED INTEGER), discountpercent=CAST(? AS DECIMAL)
+                            WHERE invoiceid = CAST(? AS UNSIGNED INTEGER) AND serviceid = CAST(? AS UNSIGNED INTEGER)`,
+                            [discountRecord.discounterid,discountRecord.discountpercent,invoiceid,discountRecord.serviceid]
+                        )
+                    }
+                }
+                //if payment record exists
+                if(fields.paymentRecords){
+                    for(var paymentRecord of fields.paymentRecords){
+                        await conn.query(
+                            `INSERT INTO payments (invoiceid, paymenttype, paymentamount,remark) 
+                                VALUES (CAST(? AS UNSIGNED INTEGER),?,CAST(? AS DECIMAL),?)`,
+                            [invoiceid,paymentRecord.paymenttype, paymentRecord.paymentamount, paymentRecord.remark?paymentRecord.remark:null]
+                        )
+                    }
+                }
+                await conn.commit() //final commit
+                resol(visitId)
+            }catch(err){
+                await conn.rollback()
+                console.log(err.message)
+                rejec(err)
             }
-            if(fields.paymentRecords){
-                fields.paymentRecords.forEach(async (paymentRecord)=>{
-                    await conn.query(
-                        `INSERT INTO payments (invoiceid, paymenttype, paymentamount,remark) 
-                            VALUES (CAST(? AS UNSIGNED INTEGER),?,CAST(? AS DECIMAL),?)`,
-                        [invoiceid,paymentRecord.paymenttype, paymentRecord.paymentamount, paymentRecord.remark?paymentRecord.remark:null]
-                    )
-                })
-            }
-            await conn.commit() //final commit
-            resol(visitId)
         } catch (err) {
-            conn.rollback()
             console.log(err.message)
             rejec(err)
         } finally{
@@ -190,36 +210,40 @@ async function postfileuploads(fields = null, files=null) {
         try {
             conn = await pool.getConnection()
             await conn.beginTransaction() //starts transaction
-            const visitid = fields.visitid[0]
-            var fileUploadDatas = []
-            for (const documentUploadType in files){
-                files[documentUploadType].forEach((spfile)=>{
-                const fileUploadData = [{
-                        'documentUploadType':documentUploadType,
-                        'filePath' : `/documents/${spfile.newFilename}`,
-                        'mimetype': spfile.mimetype,
-                        'uploadedAt': Date.now(),
-                    }]
-                fileUploadDatas = [...fileUploadDatas, ...fileUploadData]
-                })}
-            var prevFileDate = await conn.query('SELECT visits.fileuploads FROM visits WHERE visits.visitid = ?',[visitid])
-            //if the column fileuploads is not null or fileuploads.files is not empty
-            if(Boolean(prevFileDate[0].fileuploads) && Boolean(prevFileDate[0].fileuploads.files)){
-                //append on previous
-                await conn.query(
-                    'UPDATE visits SET fileuploads = ? WHERE visits.visitid = ?',
-                    [JSON.stringify({'files': [...prevFileDate[0].fileuploads.files,...fileUploadDatas]}),visitid]
-                    )
-            }else{
-                await conn.query(
-                    'UPDATE visits SET fileuploads = ? WHERE visits.visitid = ?',
-                    [JSON.stringify({'files': [...fileUploadDatas]}), visitid]
-                )  
+            try{const visitid = fields.visitid[0]
+                var fileUploadDatas = []
+                for (const documentUploadType in files){
+                    files[documentUploadType].forEach((spfile)=>{
+                    const fileUploadData = [{
+                            'documentUploadType':documentUploadType,
+                            'filePath' : `/documents/${spfile.newFilename}`,
+                            'mimetype': spfile.mimetype,
+                            'uploadedAt': Date.now(),
+                        }]
+                    fileUploadDatas = [...fileUploadDatas, ...fileUploadData]
+                    })}
+                var prevFileDate = await conn.query('SELECT visits.fileuploads FROM visits WHERE visits.visitid = ?',[visitid])
+                //if the column fileuploads is not null or fileuploads.files is not empty
+                if(Boolean(prevFileDate[0].fileuploads) && Boolean(prevFileDate[0].fileuploads.files)){
+                    //append on previous
+                    await conn.query(
+                        'UPDATE visits SET fileuploads = ? WHERE visits.visitid = ?',
+                        [JSON.stringify({'files': [...prevFileDate[0].fileuploads.files,...fileUploadDatas]}),visitid]
+                        )
+                }else{
+                    await conn.query(
+                        'UPDATE visits SET fileuploads = ? WHERE visits.visitid = ?',
+                        [JSON.stringify({'files': [...fileUploadDatas]}), visitid]
+                    )  
+                }
+                await conn.commit() //final commit
+                resol()
+            }catch(err){
+                await conn.rollback()
+                console.log(err.message)
+                rejec(err)    
             }
-            await conn.commit() //final commit
-            resol()
         } catch (err) {
-            conn.rollback()
             console.log(err.message)
             rejec(err)
         } finally{

@@ -8,7 +8,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
 import axios from "axios"
 
-export default function PatDetailView({oldPatDetail, setIsDetailViewing, serviceList}){
+export default function PatDetailView({oldPatDetail, setIsDetailViewing, serviceList, discounters}){
     const [expanded, setExpanded] = useState('documentAcc')
     const queryClient = useQueryClient()
 
@@ -55,17 +55,37 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
             })
         }
     }
+    //get discounter object from discounter id
+    function selDiscounterGen(fulldiscounters, selDiscounterid){
+        for(let discounter of fulldiscounters){
+            if(discounter.discounterid === selDiscounterid){return discounter}
+        }
+    }
+    //get discountRecords from discountDetails(from db)
+    function getDiscountRecordsFromDetail(fulldiscounters, fullservices, discountDetails){
+        return discountDetails.map((discountDetail)=>{
+            return {
+                discounter: selDiscounterGen(fulldiscounters, discountDetail.discounterid),
+                service: selServiceGen(fullservices,[discountDetail.serviceid])[0],
+                discountPercent: discountDetail.discountpercent
+            }
+        })
+    }
     //Get detail visit description; in mean time, use the old data
     //TODO: figure out how to use isError 
-    const {isRefetching:isPatDetailLoading, isPlaceholderData, isError, isSuccess, data:patDetail} = useQuery({
+    const {isRefetching:isPatDetailLoading, isPending:isPatDetailLoadingFirst, isPlaceholderData, 
+            isError:isPatDetailError, isSuccess:isPatDetailSuccess, 
+            data:patDetail} = useQuery({
         queryKey: ['patDetail', oldPatDetail.visitid],
         queryFn: ()=>(axios.get(`http://localhost:8080/getapptdetails/${oldPatDetail.visitid}`)),
         select: (response)=>({
             ...response.data[0],
-            services: selServiceGen(serviceList,response.data[0].serviceids)
+            services: selServiceGen(serviceList,response.data[0].serviceids),
+            paymentRecords: response.data[0].paymentDetail?response.data[0].paymentDetail:[],
+            discountRecords: response.data[0].discountDetail?getDiscountRecordsFromDetail(discounters, serviceList, response.data[0].discountDetail):[]
         }),
         placeholderData: (response)=>({data:[{
-            ...oldPatDetail
+            ...oldPatDetail,
         }]}) 
     })
     //mutation call to upload files
@@ -147,8 +167,8 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                             sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
                             open={mutupload.isPending||(mutupload.isSuccess&&isPatDetailLoading)}
                             onClick={()=>{}}>
-                    <CircularProgress/>
-                </Backdrop>
+                        <CircularProgress/>
+                    </Backdrop>
                     <PatientRegUploader fullwidth={true} handleUploadClick={handleUploadClick} 
                         handleFileDeleteClick={handleFileDeleteClick} fileUploaded={checkForFile(patDetail.fileuploads)}/>
                 </AccordionDetails>
@@ -160,7 +180,15 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                 </AccordionSummary>
                 <AccordionDetails sx={{marginRight:2}}>
                     {/* to handle payment from detail view */}
-                    <PatientRegPayment listSelectedServices={patDetail.services}/>
+                    {isPatDetailLoadingFirst ?
+                        <CircularProgress/>    
+                    : isPatDetailSuccess ?
+                    <PatientRegPayment listSelectedServices={patDetail.services} paymentRecords={patDetail.paymentRecords} discountRecords={patDetail.discountRecords}/>
+                    : <Box>
+                        {/* figure out how to send error messages */}
+                        <PatientRegPayment listSelectedServices={patDetail.services} paymentRecords={[]} discountRecords={[]}/>
+                    </Box> 
+                    }
                 </AccordionDetails>
             </Accordion>
         </Box>

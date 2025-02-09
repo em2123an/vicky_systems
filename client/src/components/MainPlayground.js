@@ -330,7 +330,7 @@ export default function MainPlayground(){
                 isDetailViewing ?
                 <>
                     {/* for Detail Viewing */}
-                    <PatDetailView oldPatDetail={curEvents} setIsDetailViewing={setIsDetailViewing} serviceList={serviceList}/>
+                    <PatDetailView discounters={discounters} oldPatDetail={curEvents} setIsDetailViewing={setIsDetailViewing} serviceList={serviceList}/>
                 </>:
                 <>
                     {/* for schedule view */}
