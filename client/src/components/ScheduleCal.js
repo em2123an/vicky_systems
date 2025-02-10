@@ -3,17 +3,10 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
-//import bootstrap5Plugin from '@fullcalendar/bootstrap5'
-//import bootstrapPlugin from '@fullcalendar/bootstrap'
-//import 'bootstrap/dist/css/bootstrap.css';
-//import 'bootstrap-icons/font/bootstrap-icons.css';
-//import 'bootstrap/dist/css/bootstrap.css';
-//import '@fortawesome/fontawesome-free/css/all.css';
 import React from 'react'
 import { purple } from '@mui/material/colors'
 
 export default function ScheduleCal({setCurEvents, setIsRegistering, setIsDetailViewing, events}){
-    
     
     function handleClick(info){
         //click on empty - to - make appointment
@@ -29,6 +22,7 @@ export default function ScheduleCal({setCurEvents, setIsRegistering, setIsDetail
     }
 
     function handleEventClick(info){
+        //click on events - to - see detail views
         setIsDetailViewing(true)
         setIsRegistering(false)
         setCurEvents({...info.event.extendedProps})
@@ -37,8 +31,6 @@ export default function ScheduleCal({setCurEvents, setIsRegistering, setIsDetail
     return <FullCalendar height={'100vh'}
         plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin, listPlugin]}
         initialView='Day'
-        //themeSystem='bootstrap'
-        //themeSystem='bootstrap5'
         allDaySlot={false}
         weekends = {true}
         views={{

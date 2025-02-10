@@ -2,9 +2,11 @@ import { styled } from '@mui/material/styles'
 import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardActions, CardContent, Link, Modal, IconButton} from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import DeleteIcon from '@mui/icons-material/Delete'
-import {useCallback, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {format, toDate} from 'date-fns'
 import {TransformWrapper,TransformComponent, useControls} from 'react-zoom-pan-pinch'
+import WordEditorQuill from '../editor/WordEditorQuill'
+import ScreeningHistory from '../editor/ScreeningHistory'
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
 import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded';
 import CenterFocusWeakRoundedIcon from '@mui/icons-material/CenterFocusWeakRounded';
@@ -18,8 +20,10 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
     handleFileDeleteClick, fileUploaded}){
     const [documentUploadType, setDocumentUploadType] = useState("Prescription")
     const [openImageModal, setOpenImageModal] = useState(false)
+    const [openWordEditorModal, setOpenWordEditorModal] = useState(false)
     const [srcImageModal, setSrcImageModal] = useState('')
     const [rotateDeg, setRotateDeg] = useState(0)
+    const quillRef = useRef()
 
     const handleOpenImageModal = (src)=>{
         setOpenImageModal(true)
@@ -92,7 +96,7 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
             open={openImageModal && (Boolean(srcImageModal))}
             onClose={handleCloseImageModal}
         >
-            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper' ,position:'absolute', top:'0%', left:'10%'}}>{/* define style of modal here */}
+            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'0%', left:'10%'}}>{/* define style of modal here */}
                 <TransformWrapper
                     minScale={0.2}
                     initialPositionX={200}
@@ -115,6 +119,18 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
         </Modal>
     }
     
+    const WordEditorModal = ()=>{
+        return <Modal
+                open={openWordEditorModal}
+                onClose={()=>{setOpenWordEditorModal(false)}}
+        >
+            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper' ,position:'absolute', top:'0%', left:'20%'}}>
+                
+                <ScreeningHistory/>
+            </Box>
+        </Modal>
+    }
+
     return <Container>
         {/* for choosing the document type and file */}
         <Box
@@ -149,8 +165,11 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
                 }}/>
             </Button>
         </Box>
+        <Button variant='contained' onClick={()=>{setOpenWordEditorModal(true)}}>Open Editor</Button>
         {/* Image viewing modal */}
         <ImageViewerModal/>
+        {/* Word processing modal */}
+        <WordEditorModal/>
         <Box>
             {fileUploaded.length!==0 && <List>
                 {fileUploaded.map((value, index)=>{

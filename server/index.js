@@ -312,6 +312,20 @@ app.post('/postfileuploads',(req,res,next)=>{
     })
 })
 
+app.get('/getscreeningformat',(req,res,next)=>{
+    fs.readFile(path.join(__dirname,'filestandards','ScreeningChecklistData.json'),'utf-8',
+        (err, data)=>{
+            if(err){
+                next(err)
+                return
+            }
+            const screeningdata = JSON.parse(data)
+            console.log(screeningdata)
+            res.status(200).json(screeningdata).end()
+        }
+    )
+})
+
 //trigerring a listen
 app.listen(8080,()=>{
     console.log('Server is listening at 8080...')

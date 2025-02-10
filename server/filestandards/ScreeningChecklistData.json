@@ -1,0 +1,22 @@
+[
+    {
+        "questiontitle": "Duration",
+        "questionmode": "VAL",
+        "value": ""
+    },
+    {
+        "questiontitle": "Previous Radiologic investigation",
+        "questionmode": "YN",
+        "value": false
+    },
+    {
+        "questiontitle": "Previous Surgical history",
+        "questionmode": "YN",
+        "value": false
+    },
+    {
+        "questiontitle": "Do you have any metalic object in your body?",
+        "questionmode": "YN",
+        "value": false
+    }
+]
