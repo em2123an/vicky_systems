@@ -90,10 +90,22 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
     })
     //mutation call to upload files
     const mutupload = useMutation({
-        mutationKey:['documentuploads'],
+        mutationKey:['document_uploads'],
         mutationFn: (newUpload)=>(
             axios.post('http://localhost:8080/postfileuploads',newUpload,
                 {headers:{"Content-Type":"multipart/form-data"}})
+            ),
+        onSuccess: ()=>{
+            queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
+        }
+    })
+    
+    //mutation call to delete files
+    const mutdeleteupload = useMutation({
+        mutationKey:['document_delete_uploadedfile'],
+        mutationFn: (tobedeletedfile)=>(
+            axios.post('http://localhost:8080/deleteuploadedfile',tobedeletedfile,
+                {headers:{"Content-Type":"application/x-www-form-urlencoded"}})
             ),
         onSuccess: ()=>{
             queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
@@ -105,14 +117,13 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
         //file list object used to upload files on server
         const formData = new FormData()
         formData.append('visitid', patDetail.visitid)
-        formData.append('documentUploadType', documentUploadType)
-        formData.append('uploadedDocument', event.target.files[0])
+        //formData.append('documentUploadType', documentUploadType)
+        formData.append(documentUploadType, event.target.files[0])
         mutupload.mutate(formData)            
     }
     //handle delete file click on patientRegUploader
     //TODO:delete request to server
     function handleFileDeleteClick(){
-
     }
     //list of file uploaded to be displayed
     //TODO: query to get files or with optimistic updata

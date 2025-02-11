@@ -252,6 +252,54 @@ async function postfileuploads(fields = null, files=null) {
     })
 }
 
+//delete files
+async function deleteuploadedfile(fields = null) {
+    return new Promise(async (resol, rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            await conn.beginTransaction() //starts transaction
+            try{const visitid = fields.visitid[0]
+                var fileUploadDatas = []
+                for (const documentUploadType in files){
+                    files[documentUploadType].forEach((spfile)=>{
+                    const fileUploadData = [{
+                            'documentUploadType':documentUploadType,
+                            'filePath' : `/documents/${spfile.newFilename}`,
+                            'mimetype': spfile.mimetype,
+                            'uploadedAt': Date.now(),
+                        }]
+                    fileUploadDatas = [...fileUploadDatas, ...fileUploadData]
+                    })}
+                var prevFileDate = await conn.query(
+                    'SELECT visits.fileuploads FROM visits WHERE visits.visitid = ?',
+                    [visitid])
+                //if the column fileuploads is not null or fileuploads.files is not empty
+                if(Boolean(prevFileDate[0].fileuploads) && Boolean(prevFileDate[0].fileuploads.files)){
+                    //find the specified file
+                    await conn.query(
+                        'UPDATE visits SET fileuploads = ? WHERE visits.visitid = ?',
+                        [JSON.stringify({'files': [...prevFileDate[0].fileuploads.files,...fileUploadDatas]}),visitid]
+                        )
+                }else{
+                    throw new Error('no files attached with the visit')  
+                }
+                await conn.commit() //final commit
+                resol()
+            }catch(err){
+                await conn.rollback()
+                console.log(err.message)
+                rejec(err)    
+            }
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally{
+            if(conn) conn.release()
+        }
+    })
+}
+
 //list of APIs
 app.get('/getservicesdata',(req,res,next)=>{
     getservicesdata().then((result)=>{
@@ -284,6 +332,21 @@ app.get('/getapptdetails/:visitid',(req,res,next)=>{
         res.status(505).end(err.message)
     })
 })
+
+app.get('/getscreeningformat',(req,res,next)=>{
+    fs.readFile(path.join(__dirname,'filestandards','ScreeningChecklistData.json'),'utf-8',
+        (err, data)=>{
+            if(err){
+                next(err)
+                return
+            }
+            const screeningdata = JSON.parse(data)
+            console.log(screeningdata)
+            res.status(200).json(screeningdata).end()
+        }
+    )
+})
+
 app.post('/makeappointment', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
     console.log(req.body)
     makeappointment(req.body).then((visitId)=>{
@@ -312,18 +375,14 @@ app.post('/postfileuploads',(req,res,next)=>{
     })
 })
 
-app.get('/getscreeningformat',(req,res,next)=>{
-    fs.readFile(path.join(__dirname,'filestandards','ScreeningChecklistData.json'),'utf-8',
-        (err, data)=>{
-            if(err){
-                next(err)
-                return
-            }
-            const screeningdata = JSON.parse(data)
-            console.log(screeningdata)
-            res.status(200).json(screeningdata).end()
-        }
-    )
+app.post('/deleteuploadedfile', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
+    console.log(req.body)
+    /*makeappointment(req.body).then((visitId)=>{
+        res.status(200).send({'visitid':visitId}).end()
+    }).catch((err)=>{
+        res.sendStatus(505)
+        res.end()
+    })*/
 })
 
 //trigerring a listen
