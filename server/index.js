@@ -259,27 +259,18 @@ async function deleteuploadedfile(fields = null) {
         try {
             conn = await pool.getConnection()
             await conn.beginTransaction() //starts transaction
-            try{const visitid = fields.visitid[0]
-                var fileUploadDatas = []
-                for (const documentUploadType in files){
-                    files[documentUploadType].forEach((spfile)=>{
-                    const fileUploadData = [{
-                            'documentUploadType':documentUploadType,
-                            'filePath' : `/documents/${spfile.newFilename}`,
-                            'mimetype': spfile.mimetype,
-                            'uploadedAt': Date.now(),
-                        }]
-                    fileUploadDatas = [...fileUploadDatas, ...fileUploadData]
-                    })}
+            try{const visitid = fields.visitid
                 var prevFileDate = await conn.query(
                     'SELECT visits.fileuploads FROM visits WHERE visits.visitid = ?',
                     [visitid])
                 //if the column fileuploads is not null or fileuploads.files is not empty
                 if(Boolean(prevFileDate[0].fileuploads) && Boolean(prevFileDate[0].fileuploads.files)){
                     //find the specified file
+                    var listOfFiles = prevFileDate[0].fileuploads.files
+                    var newListOfFiles = listOfFiles.filter((dbfile)=>!(dbfile.filePath===fields.fileToBeDeleted.orgFilePath))
                     await conn.query(
                         'UPDATE visits SET fileuploads = ? WHERE visits.visitid = ?',
-                        [JSON.stringify({'files': [...prevFileDate[0].fileuploads.files,...fileUploadDatas]}),visitid]
+                        [JSON.stringify({'files': [...newListOfFiles]}),visitid]
                         )
                 }else{
                     throw new Error('no files attached with the visit')  
@@ -377,12 +368,13 @@ app.post('/postfileuploads',(req,res,next)=>{
 
 app.post('/deleteuploadedfile', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
     console.log(req.body)
-    /*makeappointment(req.body).then((visitId)=>{
-        res.status(200).send({'visitid':visitId}).end()
+    deleteuploadedfile(req.body).then(()=>{
+        res.sendStatus(200).end()
     }).catch((err)=>{
+        console.error(err)
         res.sendStatus(505)
         res.end()
-    })*/
+    })
 })
 
 //trigerring a listen

@@ -28,7 +28,7 @@ export default function ScreeningHistory(){
             }
             setScreenData(editedFormatObj)
         }
-    },[screeningFormatData])
+    },[screeningFormatData, isScreeningFormatSuccess])
 
     const FormatYesNoMaker = ({question})=>{
         const qtitle = question.title?question.title:''
@@ -60,7 +60,7 @@ export default function ScreeningHistory(){
 
     const FormatMakerFromAPI = ({listScreeningDatas})=>{
         var listQuestionCmpnts = []
-        for(var [title, question] of Object.entries(listScreeningDatas) ){
+        for(var [_, question] of Object.entries(listScreeningDatas) ){
             if(question.questionmode && question.questionmode==='YN'){
                 //make a yes no radiobutton
                 listQuestionCmpnts = [...listQuestionCmpnts, 

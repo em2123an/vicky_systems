@@ -20,6 +20,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
         if(Boolean(fileuploads) && Boolean(fileuploads.files)){
             return fileuploads.files.map((file)=>({
                 ...file,
+                orgFilePath: file.filePath,
                 filePath : `http://localhost:8080${file.filePath}`, 
                 isLocalLoad:false}))
         }else{return []}
@@ -90,7 +91,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
     })
     //mutation call to upload files
     const mutupload = useMutation({
-        mutationKey:['document_uploads'],
+        mutationKey:['document_uploads',oldPatDetail.visitid],
         mutationFn: (newUpload)=>(
             axios.post('http://localhost:8080/postfileuploads',newUpload,
                 {headers:{"Content-Type":"multipart/form-data"}})
@@ -102,7 +103,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
     
     //mutation call to delete files
     const mutdeleteupload = useMutation({
-        mutationKey:['document_delete_uploadedfile'],
+        mutationKey:['document_delete_uploadedfile', oldPatDetail.visitid],
         mutationFn: (tobedeletedfile)=>(
             axios.post('http://localhost:8080/deleteuploadedfile',tobedeletedfile,
                 {headers:{"Content-Type":"application/x-www-form-urlencoded"}})
@@ -123,7 +124,15 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
     }
     //handle delete file click on patientRegUploader
     //TODO:delete request to server
-    function handleFileDeleteClick(){
+    function handleFileDeleteClick(fileindex){
+        const listOfFiles = checkForFile(patDetail.fileuploads)
+        //check listOfFiles is not empty and it is not out of index
+        if(Boolean(listOfFiles)&&Boolean(fileindex<=(listOfFiles.length-1))){
+            mutdeleteupload.mutate({
+                visitid: patDetail.visitid,
+                fileToBeDeleted: listOfFiles[fileindex]
+            })
+        }
     }
     //list of file uploaded to be displayed
     //TODO: query to get files or with optimistic updata
@@ -176,7 +185,10 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                     {/* to see documents */}
                     <Backdrop
                             sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
-                            open={mutupload.isPending||(mutupload.isSuccess&&isPatDetailLoading)}
+                            open={
+                                mutupload.isPending||(mutupload.isSuccess&&isPatDetailLoading) //for uploading
+                                || mutdeleteupload.isPending || (mutdeleteupload.isSuccess&&isPatDetailLoading) //for deleting
+                            }
                             onClick={()=>{}}>
                         <CircularProgress/>
                     </Backdrop>
