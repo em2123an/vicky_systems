@@ -117,7 +117,7 @@ async function getapptdetails(visitid){
                 [visitid]
             )
             var paymentDetail = await conn.query(
-                `SELECT p.paymenttype, p.paymentamount, p.remark, p.recievedat
+                `SELECT p.paymenttype, p.paymentamount, p.remark, p.recievedat, i.invoiceid
                 FROM invoices AS i INNER JOIN payments AS p ON i.invoiceid = p.invoiceid
                 WHERE i.visitid=?`,
                 [visitid]
@@ -291,6 +291,80 @@ async function deleteuploadedfile(fields = null) {
     })
 }
 
+//insert new payment record
+async function insertpaymentrecord(fields = null) {
+    return new Promise(async (resol, rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            await conn.beginTransaction() //starts transaction
+            try{
+                //const invoiceid = fields.invoiceid
+                const invoiceidasarray = await conn.query(
+                    `SELECT i.invoiceid 
+                    FROM invoices AS i INNER JOIN visits AS v ON v.visitid = i.visitid
+                    WHERE v.visitid=?`, fields.visitid)
+                await conn.query(
+                    `INSERT INTO payments (invoiceid, paymenttype, paymentamount,remark) 
+                        VALUES (CAST(? AS UNSIGNED INTEGER),?,CAST(? AS DECIMAL),?)`,
+                    [invoiceidasarray[0].invoiceid,fields.paymenttype, fields.paymentamount, fields.remark?fields.remark:null]
+                )
+                await conn.commit() //final commit
+                resol()
+            }catch(err){
+                await conn.rollback()
+                console.log(err.message)
+                rejec(err)    
+            }
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally{
+            if(conn) conn.release()
+        }
+    })
+}
+
+//update the discount records for given visitid
+async function updatediscountrecords(fields = null) {
+    return new Promise(async (resol, rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            await conn.beginTransaction() //starts transaction
+            try{
+                //const invoiceid = fields.invoiceid
+                const invoiceidasarray = await conn.query(
+                    `SELECT i.invoiceid 
+                    FROM invoices AS i INNER JOIN visits AS v ON v.visitid = i.visitid
+                    WHERE v.visitid=?`, fields.visitid)
+                //if discount exists
+                if(fields.discountRecords){
+                    //add services and discounts to invoice_service_line
+                    for(var discountRecord of fields.discountRecords){
+                        await conn.query(
+                            `UPDATE invoice_service_line SET discounterid=CAST(? AS UNSIGNED INTEGER), discountpercent=CAST(? AS DECIMAL)
+                            WHERE invoiceid = CAST(? AS UNSIGNED INTEGER) AND serviceid = CAST(? AS UNSIGNED INTEGER)`,
+                            [discountRecord.discounterid,discountRecord.discountpercent,invoiceidasarray[0].invoiceid,discountRecord.serviceid]
+                        )
+                    }
+                }
+                await conn.commit() //final commit
+                resol()
+            }catch(err){
+                await conn.rollback()
+                console.log(err.message)
+                rejec(err)    
+            }
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally{
+            if(conn) conn.release()
+        }
+    })
+}
+
 //list of APIs
 app.get('/getservicesdata',(req,res,next)=>{
     getservicesdata().then((result)=>{
@@ -369,6 +443,28 @@ app.post('/postfileuploads',(req,res,next)=>{
 app.post('/deleteuploadedfile', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
     console.log(req.body)
     deleteuploadedfile(req.body).then(()=>{
+        res.sendStatus(200).end()
+    }).catch((err)=>{
+        console.error(err)
+        res.sendStatus(505)
+        res.end()
+    })
+})
+
+app.post('/insertpaymentrecord', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
+    console.log(req.body)
+    insertpaymentrecord(req.body).then(()=>{
+        res.sendStatus(200).end()
+    }).catch((err)=>{
+        console.error(err)
+        res.sendStatus(505)
+        res.end()
+    })
+})
+
+app.post('/updatediscountrecords', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
+    console.log(req.body)
+    updatediscountrecords(req.body).then(()=>{
         res.sendStatus(200).end()
     }).catch((err)=>{
         console.error(err)

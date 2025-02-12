@@ -54,7 +54,7 @@ export default function MainPlayground(){
         select : (response)=>(response.data),
         })
     
-    //get services; set infinity for stay time; load on page load
+    //get discounters; set infinity for stay time; load on page load
     const {isPending: isDiscounterListLoading, isError: isDiscounterListError, 
         isSuccess: isDiscounterListSuccess, data:discounters} = useQuery(
         {queryKey:['get_discounters'], 
@@ -240,7 +240,27 @@ export default function MainPlayground(){
             return [...newArr]
         })
     }
+    //handle payment record on patientRegUploader
+    function handlePaymentRecords(paymentOption, amount, remark){
+        setPaymentRecords((prev)=>([...prev,{
+            paymenttype : paymentOption,
+            paymentamount : amount,
+            paymentremark : remark
+        }]))
+    }
+    //handle discount records on patientRegUploader
+    function handleDiscountRecords(newRecord){
+        setDiscountRecords([...newRecord])
+    }
 
+    //the first load when application runs; get servicelist
+    if(isServiceListLoading){
+        return <Box sx={{height:'100%',display:'flex',justifyContent:'center',alignItems:'center'}}>
+                    <CircularProgress/>
+            </Box>
+    }
+
+    //if fails to service list on first load; fails to get appointments
     if(isServiceListError || isGetApptsError){
         setSnackHandle((prev)=>({...prev,snackopen:true, snackmessage:"Network Error"}))
         return (<>
@@ -253,16 +273,13 @@ export default function MainPlayground(){
                         message={snackHandle.snackmessage}
                      />
                     <SchedulerFront events={isGetApptsError ? [] : getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
-        </>)}
+        </>)
+    }
 
-    return (
-        <>
-            {isServiceListLoading ? <Box sx={{display:'flex',justifyContent:'center',alignItems:'center'}}>
-                    <CircularProgress/>
-                </Box>:
-            <>
-            {(isRegistering && isServiceListSuccess) ? 
-                <Box display={'flex'} flexDirection={'column'}>
+    //service has successfully loaded
+    //For registering a patient
+    if(isRegistering && isServiceListSuccess){
+        return <Box display={'flex'} flexDirection={'column'}>
                     <Backdrop
                         sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
                         open={isSaving}
@@ -276,7 +293,7 @@ export default function MainPlayground(){
                         autoHideDuration={5000}
                         onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
                         message={snackHandle.snackmessage}
-                     />
+                    />
                     {/* View when registering patients as isRegistering = true */}
                     <Stepper activeStep={activeStep} sx={{m:1, p:1, marginBottom:2}}>
                         {steps.map((value, index)=>{
@@ -293,9 +310,10 @@ export default function MainPlayground(){
                         : activeStep ===1 ?
                             <PatientRegUploader handleUploadClick={handleUploadClick} handleFileDeleteClick={handleFileDeleteClick}
                                 fileUploaded={fileUploaded}/>
-                        : <PatientRegPayment listSelectedServices={listSelectedServices} discounters={discounters} 
-                                paymentRecords={paymentRecords} setPaymentRecords={setPaymentRecords}
-                                discountRecords={discountRecords} setDiscountRecords={setDiscountRecords}
+                        : <PatientRegPayment 
+                                listSelectedServices={listSelectedServices} discounters={discounters} 
+                                paymentRecords={paymentRecords} handlePaymentRecords={handlePaymentRecords}
+                                discountRecords={discountRecords} handleDiscountRecords={handleDiscountRecords}
                             />
                     }
                     <Stack direction={'row-reverse'} spacing={3} p={2} sx={{justifyContent:'center', flexShrink:2}}>
@@ -326,34 +344,40 @@ export default function MainPlayground(){
                                 }
                             }}>Back</Button>
                     </Stack>
-                </Box> :
-                isDetailViewing ?
-                <>
-                    {/* for Detail Viewing */}
-                    <PatDetailView discounters={discounters} oldPatDetail={curEvents} setIsDetailViewing={setIsDetailViewing} serviceList={serviceList}/>
-                </>:
-                <>
-                    {/* for schedule view */}
-                    {/* for loading view */}
-                    <Backdrop
-                        sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
-                        open={isGetApptsLoading}
-                        onClick={()=>{}}
-                    >
-                        <CircularProgress/>
-                    </Backdrop>
-                    {/* for snack bar (info) view */}
-                    <Snackbar
-                        anchorOrigin={{vertical:'top', horizontal:'center'}}
-                        open={snackHandle.snackopen}
-                        autoHideDuration={5000}
-                        onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
-                        message={snackHandle.snackmessage}
-                     />
+                </Box>
+    }
+
+    //service has been successfuly loaded
+    //for detail viewing patient services
+    //TODO: does getAppts need to be successfuly for patient detail viewing??
+    if(isDetailViewing && isServiceListSuccess){
+        return <>
+                <PatDetailView discounters={discounters} oldPatDetail={curEvents} setIsDetailViewing={setIsDetailViewing} serviceList={serviceList}/>
+            </>
+    }
+
+    return (
+        <>
+            <>
+                {/* for schedule view */}
+                {/* for loading view */}
+                <Backdrop
+                    sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
+                    open={isGetApptsLoading}
+                    onClick={()=>{}}
+                >
+                    <CircularProgress/>
+                </Backdrop>
+                {/* for snack bar (info) view */}
+                <Snackbar
+                    anchorOrigin={{vertical:'top', horizontal:'center'}}
+                    open={snackHandle.snackopen}
+                    autoHideDuration={5000}
+                    onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
+                    message={snackHandle.snackmessage}
+                />
                     <SchedulerFront events={getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
                 </>
-            }
-            </>}
         </>
     )
 }

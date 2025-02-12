@@ -112,6 +112,30 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
             queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
         }
     })
+    
+    //mutation call to insert payment records
+    const mutinsertpaymentrecord = useMutation({
+        mutationKey:['insert_payment_records', oldPatDetail.visitid],
+        mutationFn: (paymentRecords)=>(
+            axios.post('http://localhost:8080/insertpaymentrecord',paymentRecords,
+                {headers:{"Content-Type":"application/x-www-form-urlencoded"}})
+            ),
+        onSuccess: ()=>{
+            queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
+        }
+    })
+    
+    //mutation call to update discount records
+    const mutupdatediscountrecords = useMutation({
+        mutationKey:['update_discount_records', oldPatDetail.visitid],
+        mutationFn: (discountRecords)=>(
+            axios.post('http://localhost:8080/updatediscountrecords',discountRecords,
+                {headers:{"Content-Type":"application/x-www-form-urlencoded"}})
+            ),
+        onSuccess: ()=>{
+            queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
+        }
+    })
 
     //handle upload click on patientRegUploader
     function handleUploadClick(documentUploadType, event){
@@ -133,6 +157,28 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                 fileToBeDeleted: listOfFiles[fileindex]
             })
         }
+    }
+    //handle payment records
+    //TODO: add new payment records
+    function handlePaymentRecords(paymentOption, amount, remark){
+        mutinsertpaymentrecord.mutate({
+            visitid: patDetail.visitid,
+            paymenttype: paymentOption,
+            paymentamount: amount,
+            remark: remark
+        })
+    }
+    //handle discount records
+    //TODO: to get the combination of new and old discounts and update them
+    function handleDiscountRecords(discountRecords){
+        mutupdatediscountrecords.mutate({
+            visitid: patDetail.visitid,
+            discountRecords: discountRecords.map((discountRecord)=>({
+                    discounterid: discountRecord.discounter.discounterid,
+                    discountpercent: discountRecord.discountPercent,
+                    serviceid: discountRecord.service.serviceid 
+                })),
+        })
     }
     //list of file uploaded to be displayed
     //TODO: query to get files or with optimistic updata
@@ -203,10 +249,16 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                 </AccordionSummary>
                 <AccordionDetails sx={{marginRight:2}}>
                     {/* to handle payment from detail view */}
-                    {isPatDetailLoadingFirst ?
+                    {isPatDetailLoadingFirst ||
+                        mutupdatediscountrecords.isPending || (mutupdatediscountrecords.isSuccess&&isPatDetailLoading)||
+                        mutinsertpaymentrecord.isPending || (mutinsertpaymentrecord.isSuccess&&isPatDetailLoading)
+                        ?
                         <CircularProgress/>    
                     : isPatDetailSuccess ?
-                    <PatientRegPayment listSelectedServices={patDetail.services} paymentRecords={patDetail.paymentRecords} discountRecords={patDetail.discountRecords}/>
+                    <PatientRegPayment 
+                        discounters={discounters} listSelectedServices={patDetail.services} 
+                        paymentRecords={patDetail.paymentRecords} discountRecords={patDetail.discountRecords}
+                        handlePaymentRecords={handlePaymentRecords} handleDiscountRecords={handleDiscountRecords}/>
                     : <Box>
                         {/* figure out how to send error messages */}
                         <PatientRegPayment listSelectedServices={patDetail.services} paymentRecords={[]} discountRecords={[]}/>

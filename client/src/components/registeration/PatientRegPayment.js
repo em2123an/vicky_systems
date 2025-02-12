@@ -3,14 +3,14 @@ import BookingPaymentCor from "./BookingPaymentCor";
 import { Table, Box, Autocomplete, Stack, TextField, Typography, InputAdornment, Button, Dialog, DialogTitle, DialogActions, DialogContent, FormControl, Radio, FormLabel, RadioGroup, FormControlLabel, TableContainer, TableHead, TableRow, TableCell, TableBody } from "@mui/material";
 
 export default function PatientRegPayment({listSelectedServices, discounters=[],
-        setDiscountRecords=()=>{},discountRecords=[],setPaymentRecords=()=>{},paymentRecords=[]}){
+        handleDiscountRecords=()=>{},discountRecords=[],handlePaymentRecords=()=>{},paymentRecords=[]}){
     const [discounter, setDiscounter] = useState(null)
     const [discountPercent, setDiscountPercent] = useState(0)
     const [openPaymentDialog,setOpenPaymentDialog] = useState(false)
     const [paymentOption, setPaymentOption] = useState('CASH')
     const [remark, setRemark] = useState()
     const [amount, setAmount] = useState(null)
-    const [checkedServiceList, setCheckedServiceList] = useState([])
+    const [checkedServiceList, setCheckedServiceList] = useState([]) 
     
     
     function handleClosePaymentDialog(){
@@ -21,11 +21,7 @@ export default function PatientRegPayment({listSelectedServices, discounters=[],
     }
 
     function handleSavePayment(){
-        setPaymentRecords((prev)=>([...prev,{
-            paymenttype : paymentOption,
-            paymentamount : amount,
-            paymentremark : remark
-        }]))
+        handlePaymentRecords(paymentOption, amount, remark)
         handleClosePaymentDialog()
     }
 
@@ -71,9 +67,9 @@ export default function PatientRegPayment({listSelectedServices, discounters=[],
                             }]
                             oldRecord = [...newRecord]
                         })
-                        setDiscountRecords([...newRecord])
+                        handleDiscountRecords(newRecord)
                     }                           
-                }>Add Discount</Button>
+                }>Update Discount</Button>
             </Stack>
             {/* lists all discounts */}
             {discountRecords.length!==0 && <TableContainer>
@@ -120,7 +116,7 @@ export default function PatientRegPayment({listSelectedServices, discounters=[],
                                     <TableCell>{index+1}</TableCell>
                                     <TableCell>{`${payment.paymenttype} - ${payment.paymentamount}`}</TableCell>
                                     <TableCell/>
-                                    <TableCell>{payment.paymentremark}</TableCell>
+                                    <TableCell>{payment.remark}</TableCell>
                                 </TableRow>
                             })}
                         </TableBody>
@@ -165,7 +161,7 @@ export default function PatientRegPayment({listSelectedServices, discounters=[],
                 </Stack>
             </DialogContent>
             <DialogActions>
-                <Button variant="contained" onClick={handleSavePayment}>Save</Button>
+                <Button variant="contained" disabled={paymentOption==null || !(parseFloat(amount)&&parseFloat(amount)>=0)} onClick={handleSavePayment}>Save</Button>
                 <Button variant="contained" onClick={handleClosePaymentDialog}>Cancel</Button>
             </DialogActions>
         </Dialog>
