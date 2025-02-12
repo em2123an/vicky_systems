@@ -376,7 +376,7 @@ export default function MainPlayground(){
                     onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
                     message={snackHandle.snackmessage}
                 />
-                    <SchedulerFront events={getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
+                    <SchedulerFront appts={getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
                 </>
         </>
     )
