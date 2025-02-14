@@ -2,7 +2,7 @@ import { AppBar, Drawer, IconButton, List, ListItemButton, ListItemText, Toolbar
 import MenuIcon from "@mui/icons-material/Menu"
 import {useState} from 'react'
 
-export default function CustomAppbarDrawer({children}) {
+export default function CustomAppbarDrawer({setSelCurOnView, children }) {
     const[openTempNavMenu, setopenTempNavMenu] = useState(false)
     const featurelist = ['Scheduler', 'Visit', 'Archive', 'Scan-Worklist','Reporting']
 
@@ -27,7 +27,7 @@ export default function CustomAppbarDrawer({children}) {
                     <List sx={{width:250}}>
                         {featurelist.map((value, index)=>{
                             return <ListItem key={index} disablePadding>
-                                    <ListItemButton>
+                                    <ListItemButton onClick={()=>{setSelCurOnView(value)}}>
                                         <ListItemText primary={value}/>
                                     </ListItemButton>
                                 </ListItem>

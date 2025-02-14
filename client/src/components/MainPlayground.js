@@ -4,16 +4,19 @@ import PatientRegForm from "./registeration/PatientRegForm"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
 import PatDetailView from "./PatDetailView"
-import {Step, StepLabel, Stepper, Button, Stack, Box, CircularProgress, Snackbar, Backdrop} from "@mui/material"
+import {Step, StepLabel, Stepper, Button, Stack, Box, CircularProgress, Snackbar, Backdrop, Toolbar} from "@mui/material"
 import { blue } from '@mui/material/colors'
 import {useFormik} from 'formik'
 import { array, number, object, string } from 'yup'
 import {format, sub} from 'date-fns'
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query'
 import axios from 'axios'
+import CustomAppbarDrawer from "./CustomAppbarDrawer"
+import VisitFront from "./VisitFront"
 
 export default function MainPlayground(){
     //main state hub
+    const [selCurOnView, setSelCurOnView] = useState('Visit')
     const [isRegistering, setIsRegistering] = useState(false)
     const [isDetailViewing, setIsDetailViewing] = useState(false)
     const [activeStep, setActiveStep] = useState(0)
@@ -356,6 +359,51 @@ export default function MainPlayground(){
             </>
     }
 
+    console.log(selCurOnView)
+
+    switch (selCurOnView) {
+        case 'Scheduler':
+            return <>
+                        {/* for schedule view */}
+                        {/* for loading view */}
+                        <Backdrop
+                            sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
+                            open={isGetApptsLoading}
+                            onClick={()=>{}}
+                        >
+                            <CircularProgress/>
+                        </Backdrop>
+                        {/* for snack bar (info) view */}
+                        <Snackbar
+                            anchorOrigin={{vertical:'top', horizontal:'center'}}
+                            open={snackHandle.snackopen}
+                            autoHideDuration={5000}
+                            onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
+                            message={snackHandle.snackmessage}
+                            />
+                        <SchedulerFront setSelCurOnView={setSelCurOnView} appts={getAppts} 
+                            setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} 
+                            setCurEvents={setCurEvents}/>
+                    </>
+            break;
+        case 'Visit':
+            return <CustomAppbarDrawer setSelCurOnView={setSelCurOnView}>
+                <Box sx={{flexGrow:2, paddingTop:2}} component={'main'}>
+                    <Toolbar/>
+                    <VisitFront/>
+                </Box>
+            </CustomAppbarDrawer>
+            break;
+        case 'Archive':
+            break;
+        case 'Scan-Worklist':
+            break;
+        case 'Reporting':
+            break;
+        default:
+            break;
+    }
+
     return (
         <>
             <>
@@ -375,9 +423,9 @@ export default function MainPlayground(){
                     autoHideDuration={5000}
                     onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
                     message={snackHandle.snackmessage}
-                />
-                    <SchedulerFront appts={getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
-                </>
+                    />
+                <SchedulerFront setSelCurOnView={setSelCurOnView} appts={getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
+            </>
         </>
     )
 }

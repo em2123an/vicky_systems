@@ -2,10 +2,10 @@ import { Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box } fr
 import ScheduleCal from './ScheduleCal'
 import CustomAppbarDrawer from "./CustomAppbarDrawer"
 
-export default function SchedulerFront({setIsRegistering, setIsDetailViewing, appts, setCurEvents}){
+export default function SchedulerFront({setSelCurOnView, setIsRegistering, setIsDetailViewing, appts, setCurEvents}){
     const invlist = ['CT', 'MRI', 'X-RAY','ULTRASOUND','ECHO']
 
-    return <CustomAppbarDrawer>
+    return <CustomAppbarDrawer setSelCurOnView={setSelCurOnView}>
                 <Drawer variant="permanent" aria-label="permanent-nav-inv-list" 
                         sx={{width:240, flexGrow:0}}>
                     <Toolbar/>

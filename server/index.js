@@ -398,6 +398,16 @@ app.get('/getapptdetails/:visitid',(req,res,next)=>{
     })
 })
 
+app.get('/getvisitsfromquery',(req,res,next)=>{
+    console.log(req.query)
+    // getapptdetails(req.params.visitid).then((result)=>{
+    //     res.status(200).json(result).end()
+    // }).catch((err)=>{
+    //     res.status(505).end(err.message)
+    // })
+})
+
+
 app.get('/getscreeningformat',(req,res,next)=>{
     fs.readFile(path.join(__dirname,'filestandards','ScreeningChecklistData.json'),'utf-8',
         (err, data)=>{
