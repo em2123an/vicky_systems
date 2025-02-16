@@ -12,7 +12,7 @@ export default function PatientRegForm({serviceList, formik, curEvents, setCurEv
     return (
             <Container sx={{}}>
                 <Box sx={{display:'flex', flexDirection:'row', justifyContent:'start'}}>
-                    <Box component={'form'} onSubmit={formik.handleSubmit} sx={{marginRight:2}}>
+                    <Box component={'form'} autoComplete={false} onSubmit={formik.handleSubmit} sx={{marginRight:2}}>
                         <Box sx={{display:'flex', flexDirection:'column', alignItems:'flex-start', width:'fit-content', padding:'24px', border:1, borderRadius:'8px'}}>
                             <Typography variant="h5" textAlign={'start'}>Personal Information</Typography>
                             <Stack direction={'row'} spacing={2} sx={{marginTop:'16px'}}>

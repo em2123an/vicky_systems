@@ -90,6 +90,63 @@ async function getappointments(){
     })
 }
 
+//select and make queries to get visits from the query (patientname, visitid, patientid)
+async function getvisitsfromquery(searchQuery){
+    return new Promise(async (resol,rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            var result = []
+            if(searchQuery && searchQuery.visitIdQuery){
+                result = await conn.query(
+                    `SELECT p.patientid, p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
+                        v.scheduledatetime_start, v.scheduledatetime_end, v.visitid, v.fileuploads,
+                        JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames
+                    FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
+                    INNER JOIN visit_service_line AS vsl ON v.visitid = vsl.visitid
+                    INNER JOIN services as s ON vsl.serviceid = s.serviceid
+                    WHERE v.visitid = ?
+                    GROUP BY v.visitid
+                    `,[searchQuery.visitIdQuery] 
+                )
+            }
+            if(searchQuery && searchQuery.patientIdQuery){
+                result = await conn.query(
+                    `SELECT p.patientid, p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
+                        v.scheduledatetime_start, v.scheduledatetime_end, v.visitid, v.fileuploads,
+                        JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames
+                    FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
+                    INNER JOIN visit_service_line AS vsl ON v.visitid = vsl.visitid
+                    INNER JOIN services as s ON vsl.serviceid = s.serviceid
+                    WHERE p.patientid = ?
+                    GROUP BY v.visitid
+                    `,[searchQuery.patientIdQuery] 
+                )
+            }
+            if(searchQuery && searchQuery.patientNameQuery){
+                result = await conn.query(
+                    `SELECT p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
+                        v.scheduledatetime_start, v.scheduledatetime_end, v.visitid, v.fileuploads,
+                        JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames
+                    FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
+                    INNER JOIN visit_service_line AS vsl ON v.visitid = vsl.visitid
+                    INNER JOIN services as s ON vsl.serviceid = s.serviceid
+                    WHERE p.firstname LIKE ? OR p.lastname LIKE ?
+                    GROUP BY v.visitid
+                    `,[`${searchQuery.patientNameQuery}%`,`${searchQuery.patientNameQuery}%`] 
+                )
+            }
+            console.log(result)
+            resol(result)
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally {
+            if(conn) conn.release()
+        }
+    })
+}
+
 //select and make quiries to get specific appointment by visitid
 async function getapptdetails(visitid){
     return new Promise(async (resol,rejec)=>{
@@ -400,11 +457,11 @@ app.get('/getapptdetails/:visitid',(req,res,next)=>{
 
 app.get('/getvisitsfromquery',(req,res,next)=>{
     console.log(req.query)
-    // getapptdetails(req.params.visitid).then((result)=>{
-    //     res.status(200).json(result).end()
-    // }).catch((err)=>{
-    //     res.status(505).end(err.message)
-    // })
+    getvisitsfromquery(req.query).then((result)=>{
+        res.status(200).json(result).end()
+    }).catch((err)=>{
+        res.status(505).end(err.message)
+    })
 })
 
 

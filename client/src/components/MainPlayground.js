@@ -390,7 +390,7 @@ export default function MainPlayground(){
             return <CustomAppbarDrawer setSelCurOnView={setSelCurOnView}>
                 <Box sx={{flexGrow:2, paddingTop:2}} component={'main'}>
                     <Toolbar/>
-                    <VisitFront/>
+                    <VisitFront setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
                 </Box>
             </CustomAppbarDrawer>
             break;
