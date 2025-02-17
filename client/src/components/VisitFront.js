@@ -48,7 +48,8 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
             params:{
                 patientNameQuery,
                 patientIdQuery,
-                visitIdQuery
+                visitIdQuery,
+                offset: 0
             }
         })),
         enabled: false,
@@ -139,7 +140,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                         </TableHead>
                         <TableBody>
                             {
-                                searchResults&&searchResults.map((searchResult,index)=>{
+                                searchResults&& searchResults.searchResult && searchResults.searchResult.map((searchResult,index)=>{
                                     return <TableRow key={index}>
                                         <TableCell padding="none" sx={{boxShadow:1}}>
                                             <Card elevation={0} >

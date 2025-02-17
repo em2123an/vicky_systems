@@ -96,9 +96,9 @@ async function getvisitsfromquery(searchQuery){
         var conn;
         try {
             conn = await pool.getConnection()
-            var result = []
+            var result = {}
             if(searchQuery && searchQuery.visitIdQuery){
-                result = await conn.query(
+                searchResult = await conn.query(
                     `SELECT p.patientid, p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
                         v.scheduledatetime_start, v.scheduledatetime_end, v.visitid, v.fileuploads,
                         JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames
@@ -109,9 +109,11 @@ async function getvisitsfromquery(searchQuery){
                     GROUP BY v.visitid
                     `,[searchQuery.visitIdQuery] 
                 )
+                result.searchResult = searchResult
+                result.totalRow = searchResult.length
             }
             if(searchQuery && searchQuery.patientIdQuery){
-                result = await conn.query(
+                searchResult = await conn.query(
                     `SELECT p.patientid, p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
                         v.scheduledatetime_start, v.scheduledatetime_end, v.visitid, v.fileuploads,
                         JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames
@@ -122,9 +124,23 @@ async function getvisitsfromquery(searchQuery){
                     GROUP BY v.visitid
                     `,[searchQuery.patientIdQuery] 
                 )
+                result.searchResult = searchResult
+                result.totalRow = searchResult.length
             }
             if(searchQuery && searchQuery.patientNameQuery){
-                result = await conn.query(
+                searchTotalRows = await conn.query(
+                    `SELECT SUM(qs.count) AS total_number_rows
+                    FROM
+                    (SELECT COUNT(DISTINCT (v.visitid)) AS count
+                    FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
+                    INNER JOIN visit_service_line AS vsl ON v.visitid = vsl.visitid
+                    INNER JOIN services as s ON vsl.serviceid = s.serviceid
+                    WHERE p.firstname LIKE ? OR p.lastname LIKE ?
+                    GROUP BY v.visitid
+                    ) AS qs
+                    `,[`${searchQuery.patientNameQuery}%`,`${searchQuery.patientNameQuery}%`]
+                )
+                searchResult = await conn.query(
                     `SELECT p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
                         v.scheduledatetime_start, v.scheduledatetime_end, v.visitid, v.fileuploads,
                         JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames
@@ -133,8 +149,12 @@ async function getvisitsfromquery(searchQuery){
                     INNER JOIN services as s ON vsl.serviceid = s.serviceid
                     WHERE p.firstname LIKE ? OR p.lastname LIKE ?
                     GROUP BY v.visitid
-                    `,[`${searchQuery.patientNameQuery}%`,`${searchQuery.patientNameQuery}%`] 
+                    ORDER BY v.createdat DESC
+                    LIMIT 10 OFFSET ?
+                    `,[`${searchQuery.patientNameQuery}%`,`${searchQuery.patientNameQuery}%`,(parseInt(searchQuery.offset)*10) ] 
                 )
+                result.searchResult = searchResult
+                result.totalRow = searchTotalRows[0].total_number_rows
             }
             console.log(result)
             resol(result)
