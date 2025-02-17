@@ -127,7 +127,8 @@ async function getvisitsfromquery(searchQuery){
                 result.searchResult = searchResult
                 result.totalRow = searchResult.length
             }
-            if(searchQuery && searchQuery.patientNameQuery){
+            if(searchQuery && searchQuery.patientNameQuery && searchQuery.pageValue){
+                const resultPerPageLimit = parseInt('5')
                 searchTotalRows = await conn.query(
                     `SELECT SUM(qs.count) AS total_number_rows
                     FROM
@@ -150,11 +151,12 @@ async function getvisitsfromquery(searchQuery){
                     WHERE p.firstname LIKE ? OR p.lastname LIKE ?
                     GROUP BY v.visitid
                     ORDER BY v.createdat DESC
-                    LIMIT 10 OFFSET ?
-                    `,[`${searchQuery.patientNameQuery}%`,`${searchQuery.patientNameQuery}%`,(parseInt(searchQuery.offset)*10) ] 
+                    LIMIT ? OFFSET ?
+                    `,[`${searchQuery.patientNameQuery}%`,`${searchQuery.patientNameQuery}%`,resultPerPageLimit,((parseInt(searchQuery.pageValue) - 1)*resultPerPageLimit) ] 
                 )
                 result.searchResult = searchResult
                 result.totalRow = searchTotalRows[0].total_number_rows
+                result.resultPerPageLimit = `${resultPerPageLimit}`
             }
             console.log(result)
             resol(result)

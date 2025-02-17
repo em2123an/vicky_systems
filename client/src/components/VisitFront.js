@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Box, Button, Card, CardActions, CardContent, CircularProgress, Icon, IconButton, InputAdornment, List, ListItem, ListItemText, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { useRef, useState } from "react";
+import { Box, Button, Card, CardActions, CardContent, CircularProgress, Icon, IconButton, InputAdornment, List, ListItem, ListItemText, Pagination, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format} from 'date-fns'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
@@ -9,10 +9,12 @@ import axios from 'axios'
 
 
 export default function VisitFront({setIsDetailViewing,setCurEvents}) {
-    const [patientNameQuery, setPatientNameQuery] = useState()
-    const [patientIdQuery, setPatientIdQuery] = useState()
-    const [visitIdQuery, setVisitIdQuery] = useState()
+    const [patientNameQuery, setPatientNameQuery] = useState('')
+    const [patientIdQuery, setPatientIdQuery] = useState('')
+    const [visitIdQuery, setVisitIdQuery] = useState('')
     const [allowSearch, setAllowSearch] = useState(false)
+    const [lastRunKeyState, setLastRunKeyState] = useState([])
+    const [curPage, setCurPage] = useState(1)
 
     //columns for handling when it is radiology report
     const radVisitColumnHeaders= [
@@ -43,32 +45,30 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
     
     const {isLoading: isSearchResultsLoading, isError: isSearchResultsError, 
         isSuccess: isSearchResultsSuccess, data:searchResults, refetch:getResults} = useQuery(
-        {queryKey:['get_search_results'], 
+        {queryKey:['get_search_results',...lastRunKeyState], 
         queryFn: ()=>(axios.get('http://localhost:8080/getvisitsfromquery',{
             params:{
                 patientNameQuery,
                 patientIdQuery,
                 visitIdQuery,
-                offset: 0
+                pageValue : curPage
             }
         })),
-        enabled: false,
+        enabled: allowSearch,
         select : (response)=>(response.data),
         })
     //handle when search button is pressed
     function handleSearchAction (){
-        //setAllowSearch(true)
-        getResults()
+        setAllowSearch(true)
+        setLastRunKeyState([patientNameQuery,patientIdQuery,visitIdQuery,curPage])
+        //getResults()
     }
     //handle when view more is clicked for the visit
     function handleViewPatDetail(patDetail){
         setIsDetailViewing(true)
         setCurEvents({...patDetail})
     }
-
-    if(isSearchResultsSuccess||isSearchResultsError){
-        //setAllowSearch(false)
-    }
+    
 
     return <Paper sx={{height:'100%', minHeight:'100vh'}}>
         <Box sx={{display:'flex', flexDirection:'row', justifyContent:'space-around'}}>
@@ -76,6 +76,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                 onChange={(event)=>{
                         setPatientIdQuery('')
                         setVisitIdQuery('')
+                        setCurPage(1)
                         setPatientNameQuery(event.target.value)
                     }} 
                 onKeyDown={(event)=>{
@@ -85,7 +86,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                 }}
                 slotProps={{inputLabel:{shrink:true,},
                             input:{
-                                    autoComplete:false,
+                                    autoComplete:'false',
                                     sx: {borderRadius:'16px'},
                                     startAdornment:<InputAdornment position="start"><IconButton onClick={handleSearchAction} edge={'end'}><SearchOutlinedIcon/></IconButton></InputAdornment>,
                                     endAdornment:<InputAdornment position="end"><IconButton onClick={()=>{setPatientNameQuery('')}}><CloseOutlinedIcon/></IconButton></InputAdornment>,
@@ -94,6 +95,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                 onChange={(event)=>{
                         setPatientNameQuery('')
                         setVisitIdQuery('')
+                        setCurPage(1)
                         setPatientIdQuery(event.target.value)
                     }}
                 onKeyDown={(event)=>{
@@ -103,7 +105,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                     }} 
                 slotProps={{inputLabel:{shrink:true,},
                             input:{
-                                    autoComplete:false,
+                                    autoComplete:'false',
                                     sx: {borderRadius:'16px'},
                                     startAdornment:<InputAdornment position="start"><IconButton onClick={handleSearchAction} edge={'end'}><SearchOutlinedIcon/></IconButton></InputAdornment>,
                                     endAdornment:<InputAdornment position="end"><IconButton onClick={()=>{setPatientIdQuery('')}}><CloseOutlinedIcon/></IconButton></InputAdornment>,
@@ -112,6 +114,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                 onChange={(event)=>{
                         setPatientNameQuery('')
                         setPatientIdQuery('')
+                        setCurPage(1)
                         setVisitIdQuery(event.target.value)
                     }}
                 onKeyDown={(event)=>{
@@ -121,7 +124,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                     }} 
                 slotProps={{inputLabel:{shrink:true,},
                             input:{
-                                    autoComplete:false,
+                                    autoComplete:'false',
                                     sx: {borderRadius:'16px'},
                                     startAdornment:<InputAdornment position="start"><IconButton onClick={handleSearchAction} edge={'end'}><SearchOutlinedIcon/></IconButton></InputAdornment>,
                                     endAdornment:<InputAdornment position="end"><IconButton onClick={()=>{setVisitIdQuery('')}}><CloseOutlinedIcon/></IconButton></InputAdornment>,
@@ -182,9 +185,20 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                     </Table>
                 </TableContainer>
             </Box>
-                {(searchResults && searchResults.length===0) &&
+                {(searchResults && searchResults.searchResult && searchResults.searchResult.length===0) &&
                             <Box display={'flex'} justifyContent={"center"} sx={{m:2}}>
                                 <Typography variant='body1'>No results were found</Typography>
+                            </Box>}
+                {(searchResults && searchResults.totalRow && parseInt(searchResults.totalRow)>parseInt(searchResults.resultPerPageLimit)) &&
+                            <Box display={'flex'} justifyContent={"center"} sx={{m:2}}>
+                                <Pagination shape={'rounded'} variant={'outlined'} size={'large'}
+                                    count={Math.ceil(parseInt(searchResults.totalRow)/parseInt(searchResults.resultPerPageLimit))}
+                                    page={curPage} 
+                                    onChange={(event,value)=>{
+                                        setCurPage(value)
+                                        handleSearchAction()
+                                    }}
+                                    />
                             </Box>}
     </Paper>
 }
