@@ -63,8 +63,9 @@ async function getdiscounters(){
     })
 }
 
-//select and make quiries to get all the appointment
-async function getappointments(){
+//select and make quiries to get all the appointment for the specified investigation
+//TODO: limiting how much visits are returned based on schedule dates
+async function getappointments(invQuery){
     return new Promise(async (resol,rejec)=>{
         var conn;
         try {
@@ -76,8 +77,9 @@ async function getappointments(){
                 FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
                 INNER JOIN visit_service_line AS vsl ON v.visitid = vsl.visitid
                 INNER JOIN services as s ON vsl.serviceid = s.serviceid
+                WHERE s.category = ?
                 GROUP BY v.visitid
-                ` 
+                `,[invQuery.selInv]
             )
             //console.log(result)
             resol(result)
@@ -462,7 +464,7 @@ app.get('/getdiscounters',(req,res,next)=>{
 })
 
 app.get('/getappointments',(req,res,next)=>{
-    getappointments().then((result)=>{
+    getappointments(req.query).then((result)=>{
         res.status(200).send(result).end()
     }).catch((err)=>{
         res.status(505).end(err.message)
@@ -566,3 +568,12 @@ app.post('/updatediscountrecords', bodyParser.urlencoded({extended:true}), (req,
 app.listen(8080,()=>{
     console.log('Server is listening at 8080...')
 })
+
+/* for recreating other categories (with manual editing)
+INSERT INTO services (servicename, price, category) 
+SELECT 
+CONCAT(SUBSTRING_INDEX(s.servicename,' ',2),' X-RAY'),
+s.price-6000,
+'X-RAY'
+FROM services AS s WHERE category = 'MRI'
+*/

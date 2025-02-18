@@ -1,14 +1,22 @@
 import { Autocomplete, Box, TextField, Typography } from "@mui/material";
 import BookingPaymentCor from "./BookingPaymentCor";
 
-export default function PatientRegBooking({serviceList, listSelectedServices,setListSelectedServices, formik}){
+export default function PatientRegBooking({selInv, serviceList, listSelectedServices,setListSelectedServices, formik}){
     //const [selectedService, setSelectedService] = useState(null)    
     
     
     function optionGen(fullservices,selectedToBeNotIncluded){
-        if(selectedToBeNotIncluded.length === 0){return fullservices}
+        if(selectedToBeNotIncluded.length === 0){
+            return fullservices.filter((service)=>{
+                if(service.category!==selInv){
+                    console.log(service.category, selInv)
+                    return false
+                }
+                return true
+            })}
         else{
             return fullservices.filter((service)=>{
+                
                 var filt = true
                 selectedToBeNotIncluded.forEach(element => {
                     if(element.servicename === service.servicename){filt = false}

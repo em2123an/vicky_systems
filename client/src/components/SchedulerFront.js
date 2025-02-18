@@ -1,8 +1,9 @@
-import { Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box } from "@mui/material"
+import { Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, ToggleButton } from "@mui/material"
 import ScheduleCal from './ScheduleCal'
 import CustomAppbarDrawer from "./CustomAppbarDrawer"
+import { useState } from "react"
 
-export default function SchedulerFront({setSelCurOnView, setIsRegistering, setIsDetailViewing, appts, setCurEvents}){
+export default function SchedulerFront({selInv, setSelInv, setSelCurOnView, setIsRegistering, setIsDetailViewing, appts, setCurEvents}){
     const invlist = ['CT', 'MRI', 'X-RAY','ULTRASOUND','ECHO']
 
     return <CustomAppbarDrawer setSelCurOnView={setSelCurOnView}>
@@ -10,13 +11,18 @@ export default function SchedulerFront({setSelCurOnView, setIsRegistering, setIs
                         sx={{width:240, flexGrow:0}}>
                     <Toolbar/>
                     <List sx={{width:240}}>
-                        {invlist.map((item, index)=>(
-                            <ListItem key={index} disablePadding>
-                                <ListItemButton>
-                                    <ListItemText primary={item} />
-                                </ListItemButton>
+                        {invlist.map((inv, index)=>{
+                            return <ListItem key={index} disablePadding>
+                                <ToggleButton selected={selInv===inv} value={inv} color="primary" fullWidth
+                                    sx={{borderRadius:0, border:0, boxShadow:1}}
+                                    onClick={()=>{
+                                        setSelInv(inv)
+                                    }}>
+                                    <ListItemText primary={inv} />    
+                                </ToggleButton>
+                                
                             </ListItem>
-                        ))}
+                        })}
                     </List>
                 </Drawer>
                 <Box sx={{flexGrow:2}} component={'main'}>

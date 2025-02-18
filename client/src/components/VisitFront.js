@@ -145,7 +145,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                             {
                                 searchResults&& searchResults.searchResult && searchResults.searchResult.map((searchResult,index)=>{
                                     return <TableRow key={index}>
-                                        <TableCell padding="none" sx={{boxShadow:1}}>
+                                        <TableCell padding="none" sx={{boxShadow:0.5}}>
                                             <Card elevation={0} >
                                                 <CardContent>
                                                     <Typography variant="h6" component={'div'}>{searchResult.firstname} {searchResult.lastname}</Typography>
@@ -190,8 +190,8 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                                 <Typography variant='body1'>No results were found</Typography>
                             </Box>}
                 {(searchResults && searchResults.totalRow && parseInt(searchResults.totalRow)>parseInt(searchResults.resultPerPageLimit)) &&
-                            <Box display={'flex'} justifyContent={"center"} sx={{m:2}}>
-                                <Pagination shape={'rounded'} variant={'outlined'} size={'large'}
+                            <Box display={'flex'} justifyContent={"center"} sx={{m:4}}>
+                                <Pagination shape={'rounded'}  size={'large'} color={'primary'}
                                     count={Math.ceil(parseInt(searchResults.totalRow)/parseInt(searchResults.resultPerPageLimit))}
                                     page={curPage} 
                                     onChange={(event,value)=>{

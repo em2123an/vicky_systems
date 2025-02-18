@@ -27,6 +27,7 @@ export default function MainPlayground(){
     const [fileUploaded, setFileUploaded] = useState([])
     const [paymentRecords, setPaymentRecords] = useState([])
     const [discountRecords, setDiscountRecords] = useState([])
+    const [selInv, setSelInv] = useState('CT')
     const queryClient = useQueryClient()
 
     //make title
@@ -68,8 +69,12 @@ export default function MainPlayground(){
     
     //get all the appointments
     const {isPending: isGetApptsLoading,isError: isGetApptsError, isSuccess: isGetApptsSuccess, data:getAppts} = useQuery({
-        queryKey:['get_appointments','all'],
-        queryFn: ()=>(axios.get('http://localhost:8080/getappointments')),
+        queryKey:['get_appointments', selInv],
+        queryFn: ()=>(axios.get('http://localhost:8080/getappointments',{
+            params:{
+                selInv,
+            }
+        })),
         enabled : !!serviceList,
         select: (response)=>{
             //console.log(response.data)
@@ -148,7 +153,7 @@ export default function MainPlayground(){
                     setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Saved Successfully'}))
                 }
                 //it is saved 
-                queryClient.invalidateQueries({queryKey:['get_appointments','all']})
+                queryClient.invalidateQueries({queryKey:['get_appointments',selInv]})
                 setIsSaving(false)
                 resetForEnd()
             }else if(res.status===505){
@@ -306,7 +311,7 @@ export default function MainPlayground(){
                         })}
                     </Stepper>
                     {activeStep===0 ? 
-                            <PatientRegForm serviceList={serviceList} curEvents={curEvents} setCurEvents={setCurEvents} 
+                            <PatientRegForm selInv={selInv} serviceList={serviceList} curEvents={curEvents} setCurEvents={setCurEvents} 
                                 formik={formik} isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
                                 events={getAppts} 
                                 listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
@@ -381,7 +386,8 @@ export default function MainPlayground(){
                             onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
                             message={snackHandle.snackmessage}
                             />
-                        <SchedulerFront setSelCurOnView={setSelCurOnView} appts={getAppts} 
+                        <SchedulerFront selInv={selInv} setSelInv={setSelInv} 
+                            setSelCurOnView={setSelCurOnView} appts={getAppts} 
                             setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} 
                             setCurEvents={setCurEvents}/>
                     </>
@@ -424,7 +430,7 @@ export default function MainPlayground(){
                     onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
                     message={snackHandle.snackmessage}
                     />
-                <SchedulerFront setSelCurOnView={setSelCurOnView} appts={getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
+                <SchedulerFront selInv={selInv} setSelInv={setSelInv} setSelCurOnView={setSelCurOnView} appts={getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
             </>
         </>
     )
