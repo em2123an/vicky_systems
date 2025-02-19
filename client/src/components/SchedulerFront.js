@@ -1,5 +1,6 @@
 import { Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, ToggleButton } from "@mui/material"
 import ScheduleCal from './ScheduleCal'
+import ScheduleFlow from './ScheduleFlow'
 import CustomAppbarDrawer from "./CustomAppbarDrawer"
 import { useState } from "react"
 
@@ -27,7 +28,13 @@ export default function SchedulerFront({selInv, setSelInv, setSelCurOnView, setI
                 </Drawer>
                 <Box sx={{flexGrow:2}} component={'main'}>
                     <Toolbar/>
+                    {/* 
+                        <ScheduleFlow appts_unfiltered={appts}/>
+                    */}
+                    <ScheduleFlow appts_unfiltered={appts}/>
+                    {/*
                     <ScheduleCal setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} events={appts} setCurEvents={setCurEvents}/>
+                     */}
                 </Box>
             </CustomAppbarDrawer>
 }

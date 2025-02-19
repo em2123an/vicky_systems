@@ -2,10 +2,9 @@ import { styled } from '@mui/material/styles'
 import {Box, Button, Container, Radio, RadioGroup,FormControl, FormControlLabel, FormLabel, List, ListItem, Card, CardHeader, CardActions, CardContent, Link, Modal, IconButton} from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import DeleteIcon from '@mui/icons-material/Delete'
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useState} from 'react'
 import {format, toDate} from 'date-fns'
 import {TransformWrapper,TransformComponent, useControls} from 'react-zoom-pan-pinch'
-import WordEditorQuill from '../editor/WordEditorQuill'
 import ScreeningHistory from '../editor/ScreeningHistory'
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
 import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded';
@@ -23,7 +22,7 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
     const [openWordEditorModal, setOpenWordEditorModal] = useState(false)
     const [srcImageModal, setSrcImageModal] = useState('')
     const [rotateDeg, setRotateDeg] = useState(0)
-    const quillRef = useRef()
+    
 
     const handleOpenImageModal = (src)=>{
         setOpenImageModal(true)

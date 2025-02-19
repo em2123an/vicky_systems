@@ -79,6 +79,7 @@ async function getappointments(invQuery){
                 INNER JOIN services as s ON vsl.serviceid = s.serviceid
                 WHERE s.category = ?
                 GROUP BY v.visitid
+                ORDER BY v.createdat DESC
                 `,[invQuery.selInv]
             )
             //console.log(result)

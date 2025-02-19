@@ -85,7 +85,7 @@ export default function MainPlayground(){
                     end: value.scheduledatetime_end,
                     backgroundColor: blue[800], 
                     borderColor:blue[800],
-                    extendedProps : {...value}
+                    extendedProps : {...value} 
                 }))
         }
     })
