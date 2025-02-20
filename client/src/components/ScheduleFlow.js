@@ -5,6 +5,7 @@ import { styled } from '@mui/material/styles';
 import { useState, useCallback, useRef } from "react";
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format} from 'date-fns'
 import ImageViewerModal from "./editor/ImageViewerModal";
+import ScanStatusListMenu from "./editor/ScanStatusListMenu";
 
 
 const Item = styled(Paper)(({ theme }) => ({
@@ -18,13 +19,7 @@ const Item = styled(Paper)(({ theme }) => ({
   }),
 }));
 
-const header = ['Patient info', 'Visit info', 'Prescription','Report status']
-const rows = [
-    {p:'xy', v:'1234',pr:'332dskfnei'},
-    {p:'xy', v:'1234',pr:'332dskfnei'},
-    {p:'xy', v:'1234',pr:'332dskfnei'},
-    {p:'xy', v:'1234',pr:'332dskfnei'},
-]
+const header = ['Patient info', 'Visit info', 'Documents','Report status']
 
 function BasicGridAsTable({columnHeaderList, children}) {
   return (
@@ -49,7 +44,7 @@ function BasicGridAsTable({columnHeaderList, children}) {
 }
 
 function BasicGridBodyRow({children}){
-    return <Grid container size={12}>
+    return <Grid container size={12} justifyContent={'center'} alignItems={'center'}>
         {children}
     </Grid>
 }
@@ -137,7 +132,7 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
                                     return <BasicGridBodyRow>
                                         <BasicGridRowItem><Card elevation={0} >
                                                 <CardContent>
-                                                    <Typography variant="h6" component={'div'}>{apptDetail.firstname} {apptDetail.lastname}</Typography>
+                                                    <Typography variant="h6" >{apptDetail.firstname} {apptDetail.lastname}</Typography>
                                                     <Typography variant="body2" sx={{color:'text.secondary', ml:1}}>Age: {getAge(apptDetail.dob)}</Typography>
                                                     <Typography variant="body2" sx={{color:'text.secondary', ml:1}}>Sex: {apptDetail.sex}</Typography>
                                                 </CardContent>
@@ -145,15 +140,15 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
                                         <BasicGridRowItem><Card elevation={0}>
                                                 <CardContent>
                                                         {apptDetail.servicenames&&apptDetail.servicenames.map((servicename)=>{
-                                                            return <Typography variant='body1'>{servicename}</Typography>
+                                                            return <Typography variant='h6'>{servicename}</Typography>
                                                         })}
                                                 </CardContent>
                                             </Card></BasicGridRowItem>
                                         <BasicGridRowItem>{checkForFile(apptDetail.fileuploads).length!==0 && 
-                                            <List>
+                                            <>
                                             {checkForFile(apptDetail.fileuploads).map((value,index)=>{
                                                 var imagePDFSrc = value.filePath?value.filePath:''
-                                                return <ListItem key={index}>
+                                                return <>
                                                     {value.mimetype.includes('application/pdf')?
                                                         <Link component={'button'} onClick={()=>{openNewPDFTab(false,value.filePath, value.file)}} rel='noopener noreferrer' target='_blank'>
                                                             View {value.documentUploadType}
@@ -170,10 +165,12 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
                                                         <Link rel='noopener noreferrer' target='_blank' href={''}>
                                                         </Link>
                                                     }
-                                                </ListItem>
-                                            })}</List>}
+                                                </>
+                                            })}</>}
                                         </BasicGridRowItem>
-                                        <BasicGridRowItem></BasicGridRowItem>
+                                        <BasicGridRowItem>
+                                            <ScanStatusListMenu/>
+                                        </BasicGridRowItem>
                                     </BasicGridBodyRow>
                                 })}
                             </BasicGridAsTable>

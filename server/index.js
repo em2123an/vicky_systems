@@ -153,7 +153,7 @@ async function getvisitsfromquery(searchQuery){
                     INNER JOIN services as s ON vsl.serviceid = s.serviceid
                     WHERE p.firstname LIKE ? OR p.lastname LIKE ?
                     GROUP BY v.visitid
-                    ORDER BY v.createdat DESC
+                    ORDER BY v.createdat ASC
                     LIMIT ? OFFSET ?
                     `,[`${searchQuery.patientNameQuery}%`,`${searchQuery.patientNameQuery}%`,resultPerPageLimit,((parseInt(searchQuery.pageValue) - 1)*resultPerPageLimit) ] 
                 )
