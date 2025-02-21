@@ -1,4 +1,4 @@
-import { Typography, Paper, Card, Button, IconButton, CardContent, CardActions, Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, ToggleButton, Accordion, AccordionSummary, AccordionDetails, Link, Modal } from "@mui/material"
+import { Typography, Paper, Card, Button, IconButton, CardContent, CardActions, Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, ToggleButton, Accordion, AccordionSummary, AccordionDetails, Link, Modal, Dialog, DialogContent, DialogActions } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Grid from "@mui/material/Grid2";
 import { styled } from '@mui/material/styles';
@@ -19,7 +19,7 @@ const Item = styled(Paper)(({ theme }) => ({
   }),
 }));
 
-const header = ['Patient info', 'Visit info', 'Documents','Report status']
+const header = ['Patient info', 'Visit info', 'Documents','Scan Status']
 
 function BasicGridAsTable({columnHeaderList, children}) {
   return (
@@ -44,7 +44,11 @@ function BasicGridAsTable({columnHeaderList, children}) {
 }
 
 function BasicGridBodyRow({children}){
-    return <Grid container size={12} justifyContent={'center'} alignItems={'center'}>
+    return <Grid container size={12} justifyContent={'center'} 
+            alignItems={'center'}
+            sx={{ '--Grid-borderWidth': '1px',
+                borderBottom: 'var(--Grid-borderWidth) solid',
+                borderColor: 'divider'}}>
         {children}
     </Grid>
 }
@@ -140,9 +144,17 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
                                         <BasicGridRowItem><Card elevation={0}>
                                                 <CardContent>
                                                         {apptDetail.servicenames&&apptDetail.servicenames.map((servicename)=>{
-                                                            return <Typography variant='h6'>{servicename}</Typography>
+                                                            return <Typography variant='body1'>{servicename}</Typography>
                                                         })}
+                                                        <Box sx={{display:'flex', flexDirection:'row', justifyContent:'center'}}>
+                                                            <Button size="small" onClick={()=>{
+                                                                    setIsRegistering(false)
+                                                                    setIsDetailViewing(true)
+                                                                    setCurEvents({...apptDetail})
+                                                                }}>View Detail</Button>
+                                                        </Box>
                                                 </CardContent>
+                                                
                                             </Card></BasicGridRowItem>
                                         <BasicGridRowItem>{checkForFile(apptDetail.fileuploads).length!==0 && 
                                             <>
@@ -178,6 +190,7 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
                         :<Typography component={'span'}>No Scan Pending</Typography>}
                 </AccordionDetails>
         </Accordion>
+        {/* For Scan Completed visits */}
         <Accordion expanded={expanded === 'scan_complete'} onChange={handleAccChange('scan_complete')} sx={{m:2}}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="scan_complete">
                     <Typography component='span'>Scan Completed</Typography>
@@ -192,6 +205,22 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
                         :<Typography component={'span'}>No Complete Scans</Typography>}
                 </AccordionDetails>
         </Accordion>
+        {/* For Scan Incompleted visits */}
+        <Accordion expanded={expanded === 'scan_incomplete'} onChange={handleAccChange('scan_incomplete')} sx={{m:2}}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="scan_incomplete">
+                    <Typography component='span'>Scan Incomplete</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                    {appts!==0
+                        ? <>
+                            <BasicGridAsTable columnHeaderList={header}>
+                                
+                            </BasicGridAsTable>
+                        </>
+                        :<Typography component={'span'}>No Complete Scans</Typography>}
+                </AccordionDetails>
+        </Accordion>
+        {/* For Scan Cancelled visits */}
         <Accordion expanded={expanded === 'scan_cancelled'} onChange={handleAccChange('scan_cancelled')} sx={{m:2}}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="scan_cancelled">
                     <Typography component='span'>Scan Cancelled</Typography>

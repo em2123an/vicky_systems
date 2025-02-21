@@ -31,7 +31,7 @@ export default function SchedulerFront({selInv, setSelInv, setSelCurOnView, setI
                     {/* 
                         <ScheduleFlow appts_unfiltered={appts}/>
                     */}
-                    <ScheduleFlow appts_unfiltered={appts}/>
+                    <ScheduleFlow appts_unfiltered={appts} setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} setCurEvents={setCurEvents} />
                     {/*
                     <ScheduleCal setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} events={appts} setCurEvents={setCurEvents}/>
                      */}
