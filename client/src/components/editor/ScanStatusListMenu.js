@@ -1,10 +1,12 @@
-import {List, ListItemText, ListItemButton, Menu, MenuItem, MenuList, Button, Typography, Box,Dialog, DialogContent, DialogActions, DialogTitle} from '@mui/material';
+import {List, ListItemText, ListItemButton, Menu, MenuItem, MenuList, Button, Typography, Box,Dialog, DialogContent, DialogActions, DialogTitle, CircularProgress} from '@mui/material';
 import { useEffect, useState } from 'react';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
+import axios from "axios"
 
 
-export default function ScanStatusListMenu({initialSelectedOption='scan_pending',handleChangeScanStatus=()=>{}}) {
+export default function ScanStatusListMenu({initialSelectedOption='scan_pending', selVisitid}) {
   const options = [
     {val: 'scan_pending', title:'Scan Pending'},
     {val: 'scan_completed', title:'Scan Completed'},
@@ -15,17 +17,34 @@ export default function ScanStatusListMenu({initialSelectedOption='scan_pending'
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOption, setselectedOption] = useState(options.filter((option)=>(option.val===initialSelectedOption))[0]);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
-  const [tempSelectedOption, setTempSelectedOption] = useState('')
+  const [tempSelectedOption, setTempSelectedOption] = useState()
   const [confirmStatus, setConfirmStatus] = useState(-1)
   const open = Boolean(anchorEl);
+  const queryClient = useQueryClient()
+
+  //mutation call to change the status of the scan
+  const mutupdatescanstatus = useMutation({
+    mutationKey:['update_scan_status', selVisitid],
+    mutationFn: (updatedscanstatus)=>(
+        axios.post('http://localhost:8080/updatescanstatus',updatedscanstatus,
+            {headers:{"Content-Type":"application/x-www-form-urlencoded"}})
+        ),
+    onSuccess: ()=>{
+      setselectedOption(tempSelectedOption)  
+      queryClient.invalidateQueries({queryKey:['get_appointments']})
+    }
+  })
+
 
   useEffect(()=>{
     if(openConfirmDialog && tempSelectedOption){
       if(confirmStatus===1){
         //if yes is clicked
         handleClose()
-        handleChangeScanStatus()
-        setselectedOption(tempSelectedOption)      
+        mutupdatescanstatus.mutate({
+          visitid: selVisitid,
+          scanstatus:tempSelectedOption.val
+        })      
       }else if(confirmStatus===0){
         //if no is clicked
         handleClose()
@@ -90,6 +109,7 @@ export default function ScanStatusListMenu({initialSelectedOption='scan_pending'
           <Box width={1} display={'flex'} flexDirection={'row'} justifyContent={'center'}>
             <Typography variant='body1' marginRight={1}>{selectedOption.title}</Typography>
             {open ? <ExpandLess /> : <ExpandMore />}
+            {mutupdatescanstatus.isPending&&<CircularProgress size={'20'}/>}
           </Box>
         </ListItemButton>
       </List>

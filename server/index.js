@@ -447,6 +447,35 @@ async function updatediscountrecords(fields = null) {
     })
 }
 
+//update the scan status for given visitid
+async function updatescanstatus(fields = null) {
+    return new Promise(async (resol, rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            await conn.beginTransaction() //starts transaction
+            try{
+                //update the scan status in visits using visitid
+                await conn.query(
+                    `UPDATE visits SET scanstatus=? WHERE visitid=?`,
+                    [fields.scanstatus, fields.visitid]
+                )
+                await conn.commit() //final commit
+                resol()
+            }catch(err){
+                await conn.rollback()
+                console.log(err.message)
+                rejec(err)    
+            }
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally{
+            if(conn) conn.release()
+        }
+    })
+}
+
 //list of APIs
 app.get('/getservicesdata',(req,res,next)=>{
     getservicesdata().then((result)=>{
@@ -557,6 +586,17 @@ app.post('/insertpaymentrecord', bodyParser.urlencoded({extended:true}), (req,re
 app.post('/updatediscountrecords', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
     console.log(req.body)
     updatediscountrecords(req.body).then(()=>{
+        res.sendStatus(200).end()
+    }).catch((err)=>{
+        console.error(err)
+        res.sendStatus(505)
+        res.end()
+    })
+})
+
+app.post('/updatescanstatus', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
+    console.log(req.body)
+    updatescanstatus(req.body).then(()=>{
         res.sendStatus(200).end()
     }).catch((err)=>{
         console.error(err)

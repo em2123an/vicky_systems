@@ -201,7 +201,7 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
                             })}</>}
                         </BasicGridRowItem>
                         <BasicGridRowItem>
-                            <ScanStatusListMenu initialSelectedOption={apptDetail.scanstatus}/>
+                            <ScanStatusListMenu initialSelectedOption={apptDetail.scanstatus} selVisitid={apptDetail.visitid}/>
                         </BasicGridRowItem>
                     </BasicGridBodyRow>
                 })}
