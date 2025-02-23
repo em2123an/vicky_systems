@@ -8,8 +8,8 @@ export default function PatientRegBooking({selInv, serviceList, listSelectedServ
     function optionGen(fullservices,selectedToBeNotIncluded){
         if(selectedToBeNotIncluded.length === 0){
             return fullservices.filter((service)=>{
-                if(service.category!==selInv){
-                    console.log(service.category, selInv)
+                if(service.category!==selInv.title){
+                    console.log(service.category, selInv.title)
                     return false
                 }
                 return true

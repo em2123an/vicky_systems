@@ -1,29 +1,31 @@
-import {List, ListItemText, ListItemButton, Menu, MenuItem, MenuList, Button, Typography, Box,Dialog, DialogContent, DialogActions} from '@mui/material';
+import {List, ListItemText, ListItemButton, Menu, MenuItem, MenuList, Button, Typography, Box,Dialog, DialogContent, DialogActions, DialogTitle} from '@mui/material';
 import { useEffect, useState } from 'react';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 
 
-export default function ScanStatusListMenu({handleStatusClick=()=>{return true}}) {
+export default function ScanStatusListMenu({initialSelectedOption='scan_pending',handleChangeScanStatus=()=>{}}) {
+  const options = [
+    {val: 'scan_pending', title:'Scan Pending'},
+    {val: 'scan_completed', title:'Scan Completed'},
+    {val: 'scan_incomplete', title:'Scan Incomplete'},
+    {val: 'scan_cancelled', title:'Scan Cancelled'},
+  ];
+
   const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedOption, setselectedOption] = useState('Scan Pending');
+  const [selectedOption, setselectedOption] = useState(options.filter((option)=>(option.val===initialSelectedOption))[0]);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const [tempSelectedOption, setTempSelectedOption] = useState('')
   const [confirmStatus, setConfirmStatus] = useState(-1)
   const open = Boolean(anchorEl);
-  const options = [
-    'Scan Pending',
-    'Scan Completed',
-    'Scan Incomplete',
-    'Scan Cancelled'
-  ];
 
   useEffect(()=>{
     if(openConfirmDialog && tempSelectedOption){
       if(confirmStatus===1){
         //if yes is clicked
-        setselectedOption(tempSelectedOption)      
         handleClose()
+        handleChangeScanStatus()
+        setselectedOption(tempSelectedOption)      
       }else if(confirmStatus===0){
         //if no is clicked
         handleClose()
@@ -44,8 +46,10 @@ export default function ScanStatusListMenu({handleStatusClick=()=>{return true}}
   }
 
   const handleMenuItemClick = (event, index, option) => {
-    setOpenConfirmDialog(true)
-    setTempSelectedOption(option)
+    if(selectedOption.val !== option.val){
+      setOpenConfirmDialog(true)
+      setTempSelectedOption(option)
+    }
     // if(handleStatusClick(option)){
     //     setselectedOption(option);
     //     setAnchorEl(null);
@@ -84,7 +88,7 @@ export default function ScanStatusListMenu({handleStatusClick=()=>{return true}}
             {open ? <ExpandLess /> : <ExpandMore />}
           */}
           <Box width={1} display={'flex'} flexDirection={'row'} justifyContent={'center'}>
-            <Typography variant='body1' marginRight={1}>{selectedOption}</Typography>
+            <Typography variant='body1' marginRight={1}>{selectedOption.title}</Typography>
             {open ? <ExpandLess /> : <ExpandMore />}
           </Box>
         </ListItemButton>
@@ -105,15 +109,15 @@ export default function ScanStatusListMenu({handleStatusClick=()=>{return true}}
             selected={option === selectedOption}
             onClick={(event) => handleMenuItemClick(event, index, option)}
           >
-            {option}
+            {option.title}
           </MenuItem>
         ))}
       </Menu>
-      <Dialog sx={{}} open={openConfirmDialog} onClose={()=>{handleOnCloseConfirmDialog()}}>
-            <DialogContent>Are You Sure?</DialogContent>
+      <Dialog open={openConfirmDialog} onClose={()=>{handleOnCloseConfirmDialog()}}>
+            <DialogTitle sx={{padding:4}}>Are you sure you want to continue?</DialogTitle>
             <DialogActions>
-                <Button autoFocus color={'success'} onClick={()=>{handleYesNoClick(true)}}>Yes</Button>
-                <Button color={'error'} onClick={()=>{handleYesNoClick(false)}}>No</Button>
+                <Button autoFocus variant='contained' color={'success'} onClick={()=>{handleYesNoClick(true)}}>Yes</Button>
+                <Button variant='contained' color={'error'} onClick={()=>{handleYesNoClick(false)}}>No</Button>
             </DialogActions>
       </Dialog>
     </Box>

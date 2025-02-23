@@ -73,40 +73,42 @@ export default function PatientRegForm({selInv, serviceList, formik, curEvents, 
                         </Box>
                         <PatientRegBooking selInv={selInv} serviceList={serviceList} listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices} formik={formik}/>
                     </Box>
-                    <Box sx={{flexGrow:2, alignContent:'stretch', alignSelf:'stretch', minHeight:'80vh'}}>
-                        <FullCalendar height={'100%'}
-                            plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin, listPlugin]}
-                            initialView='Day'
-                            allDaySlot={false}
-                            weekends = {true}
-                            views={{
-                                Day : {
-                                    type : 'timeGrid',
-                                    slotDuration : {
-                                        minutes : 20
-                                    }
-                                },
-                            }}
-                            buttonText={{
-                                'today':'Today',
-                                'week' : 'Week',
-                                'list': 'Show All'
-                            }}
-                            headerToolbar = {{
-                                left : 'title',
-                                //center : 'title',
-                                right : 'Day,today,prev,next'
-                            }}
-                            events={[...events, curEvents]}
-                            selectable = {true}
-                            select={(info)=>{
-                                setCurEvents((appEvent)=>({...appEvent,start:info.startStr,end:info.endStr}))
-                            }}
-                            eventChange={(changeInfo)=>{
-                                setCurEvents((appEvent)=>({...appEvent,start:changeInfo.event.startStr, end:changeInfo.event.endStr}))
-                            }}
-                            />
-                    </Box>
+                    {(curEvents.extendedProps && curEvents.extendedProps.calView) &&
+                        <Box sx={{flexGrow:2, alignContent:'stretch', alignSelf:'stretch', minHeight:'80vh'}}>
+                            <FullCalendar height={'100%'}
+                                plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin, listPlugin]}
+                                initialView='Day'
+                                allDaySlot={false}
+                                weekends = {true}
+                                views={{
+                                    Day : {
+                                        type : 'timeGrid',
+                                        slotDuration : {
+                                            minutes : 20
+                                        }
+                                    },
+                                }}
+                                buttonText={{
+                                    'today':'Today',
+                                    'week' : 'Week',
+                                    'list': 'Show All'
+                                }}
+                                headerToolbar = {{
+                                    left : 'title',
+                                    //center : 'title',
+                                    right : 'Day,today,prev,next'
+                                }}
+                                events={[...events, curEvents]}
+                                selectable = {true}
+                                select={(info)=>{
+                                    setCurEvents((appEvent)=>({...appEvent,start:info.startStr,end:info.endStr}))
+                                }}
+                                eventChange={(changeInfo)=>{
+                                    setCurEvents((appEvent)=>({...appEvent,start:changeInfo.event.startStr, end:changeInfo.event.endStr}))
+                                }}
+                                />
+                        </Box>
+                    }
                 </Box>
             </Container>
     )

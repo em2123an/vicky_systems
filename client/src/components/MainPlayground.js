@@ -69,10 +69,10 @@ export default function MainPlayground(){
     
     //get all the appointments
     const {isPending: isGetApptsLoading,isError: isGetApptsError, isSuccess: isGetApptsSuccess, data:getAppts} = useQuery({
-        queryKey:['get_appointments', selInv],
+        queryKey:['get_appointments', selInv.title],
         queryFn: ()=>(axios.get('http://localhost:8080/getappointments',{
             params:{
-                selInv,
+                selInv: selInv.title,
             }
         })),
         enabled : !!serviceList,
@@ -123,8 +123,8 @@ export default function MainPlayground(){
             mobileno : formik.values.mobileno,
             dob : format(resultdate,'yyyy-MM-dd'),
             services : listSelectedServices.map((ser)=>(ser.serviceid)),
-            sched_start : format(curEvents.start,'yyyy-MM-dd HH:mm:ss'),
-            sched_end : format(curEvents.end,'yyyy-MM-dd HH:mm:ss'),
+            sched_start : curEvents.start?format(curEvents.start,'yyyy-MM-dd HH:mm:ss'):null,
+            sched_end : curEvents.end?format(curEvents.end,'yyyy-MM-dd HH:mm:ss'):null,
             paymentRecords: paymentRecords,
             discountRecords: discountRecords.map((discountRecord)=>({
                 discounterid: discountRecord.discounter.discounterid,
@@ -153,7 +153,7 @@ export default function MainPlayground(){
                     setSnackHandle((prev)=>({...prev, snackopen:true, snackmessage:'Saved Successfully'}))
                 }
                 //it is saved 
-                queryClient.invalidateQueries({queryKey:['get_appointments',selInv]})
+                queryClient.invalidateQueries({queryKey:['get_appointments',selInv.title]})
                 setIsSaving(false)
                 resetForEnd()
             }else if(res.status===505){

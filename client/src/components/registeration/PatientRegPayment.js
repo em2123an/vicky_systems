@@ -67,7 +67,7 @@ export default function PatientRegPayment({listSelectedServices, discounters=[],
                             }]
                             oldRecord = [...newRecord]
                         })
-                        handleDiscountRecords(newRecord)
+                        handleDiscountRecords(newRecord) 
                     }                           
                 }>Update Discount</Button>
             </Stack>

@@ -196,10 +196,12 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
             <TextField label='Sex' variant="standard" 
                 slotProps={{input:{readOnly:true}}}
                 value={`${patDetail.sex}`} />
-            <TextField label='Appointment Date' variant="standard" 
-                slotProps={{input:{readOnly:true}}}
-                sx={{flexGrow:2}}
-                value={getAppointment(patDetail.scheduledatetime_start, patDetail.scheduledatetime_end)}/>
+            {(patDetail.scheduledatetime_end && patDetail.scheduledatetime_start) &&
+                <TextField label='Appointment Date' variant="standard" 
+                    slotProps={{input:{readOnly:true}}}
+                    sx={{flexGrow:2}}
+                    value={getAppointment(patDetail.scheduledatetime_start, patDetail.scheduledatetime_end)}/>
+            }
         </Box>
         <Box>
             {/* Accordion for service lists */}

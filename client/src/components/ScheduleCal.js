@@ -17,7 +17,10 @@ export default function ScheduleCal({setCurEvents, setIsRegistering, setIsDetail
             end : info.endStr,
             editable : true,
             backgroundColor: purple[800],
-            borderColor: purple[800]
+            borderColor: purple[800],
+            extendedProps: {
+                calView: true
+            },
         })
     }
 
