@@ -8,11 +8,11 @@ import { useEffect, useState } from "react"
 export default function SchedulerFront({selInv, setSelInv, setSelCurOnView, setIsRegistering, setIsDetailViewing, appts, setCurEvents}){
     const invlist = ['MRI','CT', 'X-RAY','ULTRASOUND','ECHO']
     const invSchedTypeList = [
-        {title:'MRI', type:'cal'},
-        {title:'CT', type:'flow'},
-        {title:'X-RAY', type:'flow'},
-        {title:'ULTRASOUND', type:'flow'},
-        {title:'ECHO', type:'flow'},
+        {title:'MRI', type:'cal', scannerIsReporter:false},
+        {title:'CT', type:'flow', scannerIsReporter:false},
+        {title:'X-RAY', type:'flow', scannerIsReporter:false},
+        {title:'ULTRASOUND', type:'flow', scannerIsReporter:true},
+        {title:'ECHO', type:'flow', scannerIsReporter:true},
     ]
 
     useEffect(()=>{
@@ -43,7 +43,7 @@ export default function SchedulerFront({selInv, setSelInv, setSelCurOnView, setI
                     <Toolbar/>
                     {
                         selInv.type==='flow'? 
-                            <ScheduleFlow appts_unfiltered={appts} setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} setCurEvents={setCurEvents} /> :
+                            <ScheduleFlow appts_unfiltered={appts} selInv={selInv} setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} setCurEvents={setCurEvents} /> :
                         selInv.type==='cal'&& 
                             <ScheduleCal setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} events={appts} setCurEvents={setCurEvents}/>
                     }

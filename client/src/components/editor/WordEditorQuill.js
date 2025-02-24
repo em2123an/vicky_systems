@@ -1,8 +1,9 @@
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
+import { Box } from '@mui/material'
 
-export default function  WordEditorQuill({outerRef}) {
+export default function  WordEditorQuill({outerRef, height=500}) {
     const containerRef = useRef()//points to div element for quill to render on
     const quillRef = useRef(null)
     const toolbarOptions = [
@@ -28,12 +29,8 @@ export default function  WordEditorQuill({outerRef}) {
 
     const pickedToolbarOptions =[
         [{ 'font': [] },{ 'size': ['small', false, 'large', 'huge'] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'list': 'check' }],
-        [{ 'align': [] }],
-        [{ 'indent': '-1'}, { 'indent': '+1' }],
-        [{ 'color': [] }, { 'background': [] }],
-        ['clean']
+        ['bold', 'italic', 'underline',],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
     ]
 
     useEffect(()=>{
@@ -54,7 +51,14 @@ export default function  WordEditorQuill({outerRef}) {
         } 
     },[outerRef])
  
-    return <div ref={containerRef}>
-    </div> 
+    return <Box ref={containerRef}  
+                sx={{height, '.ql-container':{
+                    height: `${height-70}px`
+                }, '.ql-toolbar':{
+                    height: '70px'
+                },'.ql-editor':{
+                    fontSize: '18px'
+                }}}>
+            </Box>
 }
 

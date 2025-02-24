@@ -610,11 +610,7 @@ app.listen(8080,()=>{
     console.log('Server is listening at 8080...')
 })
 
-/* for recreating other categories (with manual editing)
-INSERT INTO services (servicename, price, category) 
-SELECT 
-CONCAT(SUBSTRING_INDEX(s.servicename,' ',2),' X-RAY'),
-s.price-6000,
-'X-RAY'
-FROM services AS s WHERE category = 'MRI'
+/* 
+TODO: create visits.scanstatus - varchar - default - scan_pending
+index- visits.createdat
 */

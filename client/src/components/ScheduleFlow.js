@@ -8,9 +8,8 @@ import ImageViewerModal from "./editor/ImageViewerModal";
 import ScanStatusListMenu from "./editor/ScanStatusListMenu";
 import {LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
 import {AdapterDateFns} from '@mui/x-date-pickers/AdapterDateFnsV3'
+import WordEditorQuill from "./editor/WordEditorQuill";
 
-
-const header = ['Patient info', 'Visit info', 'Documents','Scan Status']
 
 function BasicGridAsTable({columnHeaderList, children}) {
   return (
@@ -55,9 +54,11 @@ function BasicGridRowItem({children}){
 }
 
 
-export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
+export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
     const [expanded, setExpanded] = useState('scan_pending')
     const [selSchedDate, setSelSchedDate] = useState(toDate(Date.now()))
+    const [openReportCreatorWordEditorModal, setOpenReportCreatorWordEditorModal] = useState(false)
+    const quillRef = useRef()
     const handleOpenImageRefer = useRef()
 
     //filtering for the selected date without requiring a network
@@ -150,8 +151,36 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
         setCurEvents({...info.event.extendedProps})
     }
 
+    
+    const ReportCreatorWordEditorModal = ()=>{
+        return <Modal
+                open={openReportCreatorWordEditorModal}
+                onClose={()=>{setOpenReportCreatorWordEditorModal(false)}}
+        >
+            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'2%', left:'20%', width:'55%', maxWidth:'60%'}}>
+                <Box sx={{display:'flex', flexDirection:'column',justifyContent:'start'}}
+                >
+                    <WordEditorQuill outerRef={quillRef} height={500}/>
+                    <Box sx={{display:'flex', justifyContent:'space-between', p:2}}>
+                        <Button color="success" variant="contained">Save and Verify</Button>
+                        <Button color="secondary" variant="contained">Save as Draft</Button>
+                        <Button color="error" variant="contained">Cancel</Button>
+                    </Box>
+                </Box>
+            </Box>
+        </Modal>
+    }
+
     const GridShowAppts = ({appts}) =>{
-        return <BasicGridAsTable columnHeaderList={header}>
+        var selHeader = []
+        const header = ['Patient info', 'Visit info', 'Documents','Scan Status']
+        const headerForScannerIsReporter = [...header, 'Report']
+        if(selInv && selInv.scannerIsReporter){
+            selHeader = headerForScannerIsReporter
+        }else{
+            selHeader = header
+        }
+        return <BasicGridAsTable columnHeaderList={selHeader}>
                 {appts.map((apptDetail)=>{
                     return <BasicGridBodyRow>
                         <BasicGridRowItem><Card elevation={0} >
@@ -173,8 +202,7 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
                                                     setCurEvents({...apptDetail})
                                                 }}>View Detail</Button>
                                         </Box>
-                                </CardContent>
-                                
+                                </CardContent>    
                             </Card></BasicGridRowItem>
                         <BasicGridRowItem>{checkForFile(apptDetail.fileuploads).length!==0 && 
                             <>
@@ -203,6 +231,13 @@ export default function ScheduleFlow({setCurEvents=()=>{}, setIsRegistering=()=>
                         <BasicGridRowItem>
                             <ScanStatusListMenu initialSelectedOption={apptDetail.scanstatus} selVisitid={apptDetail.visitid}/>
                         </BasicGridRowItem>
+                        {(selInv && selInv.scannerIsReporter) && 
+                            <BasicGridRowItem>
+                                <Button variant={'text'} 
+                                    onClick={()=>{setOpenReportCreatorWordEditorModal(true)}}
+                                    >Create Report</Button>
+                                <ReportCreatorWordEditorModal/>
+                            </BasicGridRowItem>}
                     </BasicGridBodyRow>
                 })}
             </BasicGridAsTable>

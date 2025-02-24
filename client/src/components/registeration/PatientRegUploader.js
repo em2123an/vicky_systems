@@ -123,8 +123,7 @@ export default function PatientRegUploader({fullwidth=false, handleUploadClick,
                 open={openWordEditorModal}
                 onClose={()=>{setOpenWordEditorModal(false)}}
         >
-            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper' ,position:'absolute', top:'0%', left:'20%'}}>
-                
+            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'0%', left:'20%'}}>
                 <ScreeningHistory/>
             </Box>
         </Modal>
