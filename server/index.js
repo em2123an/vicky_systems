@@ -93,6 +93,29 @@ async function getappointments(invQuery){
     })
 }
 
+//get results with status query
+async function getresultswithstatus(invQuery){
+    return new Promise(async (resol,rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            var result = await conn.query(
+                `SELECT vsl.visitid, vsl.serviceid, s.servicename, vsl.reportstatus, vsl.assignedto,vsl.report
+                 FROM visit_service_line AS vsl INNER JOIN services as s ON vsl.serviceid = s.serviceid
+                 WHERE s.category = ?
+                `,[invQuery.selInv]
+            )
+            //console.log(result)
+            resol(result)
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally {
+            if(conn) conn.release()
+        }
+    })
+}
+
 //select and make queries to get visits from the query (patientname, visitid, patientid)
 async function getvisitsfromquery(searchQuery){
     return new Promise(async (resol,rejec)=>{
@@ -476,6 +499,36 @@ async function updatescanstatus(fields = null) {
     })
 }
 
+//update the scan status for given visitid
+async function updatereportstatus(fields = null) {
+    return new Promise(async (resol, rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            await conn.beginTransaction() //starts transaction
+            try{
+                //update the scan status in visits using visitid
+                await conn.query(
+                    `UPDATE visit_service_line SET reportstatus = ? 
+                    WHERE visitid = ? AND serviceid = ?`,
+                    [fields.reportstatus, fields.visitid, fields.serviceid]
+                )
+                await conn.commit() //final commit
+                resol()
+            }catch(err){
+                await conn.rollback()
+                console.log(err.message)
+                rejec(err)    
+            }
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally{
+            if(conn) conn.release()
+        }
+    })
+}
+
 //list of APIs
 app.get('/getservicesdata',(req,res,next)=>{
     getservicesdata().then((result)=>{
@@ -495,6 +548,14 @@ app.get('/getdiscounters',(req,res,next)=>{
 
 app.get('/getappointments',(req,res,next)=>{
     getappointments(req.query).then((result)=>{
+        res.status(200).send(result).end()
+    }).catch((err)=>{
+        res.status(505).end(err.message)
+    })
+})
+
+app.get('/getresultswithstatus',(req,res,next)=>{
+    getresultswithstatus(req.query).then((result)=>{
         res.status(200).send(result).end()
     }).catch((err)=>{
         res.status(505).end(err.message)
@@ -597,6 +658,17 @@ app.post('/updatediscountrecords', bodyParser.urlencoded({extended:true}), (req,
 app.post('/updatescanstatus', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
     console.log(req.body)
     updatescanstatus(req.body).then(()=>{
+        res.sendStatus(200).end()
+    }).catch((err)=>{
+        console.error(err)
+        res.sendStatus(505)
+        res.end()
+    })
+})
+
+app.post('/updatereportstatus', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
+    console.log(req.body)
+    updatereportstatus(req.body).then(()=>{
         res.sendStatus(200).end()
     }).catch((err)=>{
         console.error(err)

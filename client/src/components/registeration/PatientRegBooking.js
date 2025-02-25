@@ -16,7 +16,10 @@ export default function PatientRegBooking({selInv, serviceList, listSelectedServ
             })}
         else{
             return fullservices.filter((service)=>{
-                
+                if(service.category!==selInv.title){
+                    console.log(service.category, selInv.title)
+                    return false
+                }
                 var filt = true
                 selectedToBeNotIncluded.forEach(element => {
                     if(element.servicename === service.servicename){filt = false}

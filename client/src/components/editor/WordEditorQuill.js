@@ -38,8 +38,7 @@ export default function  WordEditorQuill({outerRef, height=500}) {
             const container = containerRef.current;
             const editorContainer = container.appendChild(
                 container.ownerDocument.createElement('div'),
-            );
-            console.log(editorContainer)
+            )
             quillRef.current = new Quill(editorContainer, {
                 theme:'snow',
                 modules:{toolbar: pickedToolbarOptions}
