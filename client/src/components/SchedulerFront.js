@@ -5,7 +5,7 @@ import ScheduleFlow from './ScheduleFlow'
 import CustomAppbarDrawer from "./CustomAppbarDrawer"
 import { useEffect, useState } from "react"
 
-export default function SchedulerFront({serviceList, selInv, setSelInv, setSelCurOnView, setIsRegistering, setIsDetailViewing, appts, setCurEvents}){
+export default function SchedulerFront({selInv, setSelInv, setSelCurOnView, setIsRegistering, setIsDetailViewing, appts, setCurEvents}){
     const invlist = ['MRI','CT', 'X-RAY','ULTRASOUND','ECHO']
     const invSchedTypeList = [
         {title:'MRI', type:'cal', scannerIsReporter:false},
@@ -43,7 +43,7 @@ export default function SchedulerFront({serviceList, selInv, setSelInv, setSelCu
                     <Toolbar/>
                     {
                         selInv.type==='flow'? 
-                            <ScheduleFlow serviceList={serviceList} appts_unfiltered={appts} selInv={selInv} setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} setCurEvents={setCurEvents} /> :
+                            <ScheduleFlow appts_unfiltered={appts} selInv={selInv} setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} setCurEvents={setCurEvents} /> :
                         selInv.type==='cal'&& 
                             <ScheduleCal setIsDetailViewing={setIsDetailViewing} setIsRegistering={setIsRegistering} events={appts} setCurEvents={setCurEvents}/>
                     }

@@ -3,9 +3,12 @@ import 'quill/dist/quill.snow.css'
 import { useEffect, useRef } from 'react'
 import { Box } from '@mui/material'
 
-export default function  WordEditorQuill({outerRef, height=500}) {
+export default function  WordEditorQuill({outerRef, height=500, defaultValue={},readOnly=false}) {
     const containerRef = useRef()//points to div element for quill to render on
     const quillRef = useRef(null)
+    const defaultValueRef = useRef(defaultValue)
+    const readOnlyRef = useRef(readOnly)
+
     const toolbarOptions = [
         ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
         ['blockquote', 'code-block'],
@@ -44,7 +47,15 @@ export default function  WordEditorQuill({outerRef, height=500}) {
                 modules:{toolbar: pickedToolbarOptions}
             })
         }
-        outerRef.current = quillRef.current
+        outerRef.current = quillRef.current//quill will be available for outside referrence
+        //to set contents for the word editor
+        //check for existence of default value with valid delta type
+        if(defaultValueRef.current && defaultValueRef.current.ops){
+            quillRef.current.setContents(defaultValueRef.current)
+        }
+        if(readOnlyRef.current){
+            quillRef.current.enable(!readOnlyRef.current)
+        }
         return ()=>{
             outerRef.current = null
         } 

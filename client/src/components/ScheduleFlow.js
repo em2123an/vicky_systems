@@ -1,8 +1,8 @@
-import { Typography, Paper, Card, Button, IconButton, CardContent, CardActions, Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, ToggleButton, Accordion, AccordionSummary, AccordionDetails, Link, Modal, Dialog, DialogContent, DialogActions, CircularProgress } from "@mui/material"
+import { Typography, Paper, Card, Button, IconButton, CardContent, CardActions, Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, Accordion, AccordionSummary, AccordionDetails, Link, Modal, Dialog, DialogTitle, DialogActions, CircularProgress } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Grid from "@mui/material/Grid2";
 import { styled } from '@mui/material/styles';
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate, isSameDay} from 'date-fns'
 import ImageViewerModal from "./editor/ImageViewerModal";
 import ScanStatusListMenu from "./editor/ScanStatusListMenu";
@@ -56,11 +56,11 @@ function BasicGridRowItem({children}){
 }
 
 
-export default function ScheduleFlow({serviceList=[], selInv, setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
+export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
     const [expanded, setExpanded] = useState('scan_pending')
     const [selSchedDate, setSelSchedDate] = useState(toDate(Date.now()))
     const [openReportCreatorWordEditorModal, setOpenReportCreatorWordEditorModal] = useState(false)
-    const [selResultForReporting, setSelResultForReporting] = useState()
+    const [selResultForReporting, setSelResultForReporting] = useState({})
     const quillRef = useRef()
     const handleOpenImageRefer = useRef()
     const queryClient = useQueryClient()
@@ -126,8 +126,11 @@ export default function ScheduleFlow({serviceList=[], selInv, setCurEvents=()=>{
             axios.post('http://localhost:8080/updatereportstatus',updatereportstatus,
                 {headers:{"Content-Type":"application/x-www-form-urlencoded"}})
             ),
-        onSuccess: ()=>{  
+        onSuccess: (data,variables,context)=>{  
             queryClient.invalidateQueries({queryKey:['get_results_with_status']})
+            if(variables.reportstatus==='report_verified'){
+                queryClient.invalidateQueries({queryKey:['get_appointments', selInv.title]})
+            }
             },
         onSettled: ()=>{
             mutupdatereportstatus.reset()
@@ -186,37 +189,56 @@ export default function ScheduleFlow({serviceList=[], selInv, setCurEvents=()=>{
 
     
     const ReportCreatorWordEditorModal = ({handleSaveClick, result})=>{
+        const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+
+        function handleYesNoClick(status){
+            if(status){
+                handleSaveClick('verify', result)
+                setSelResultForReporting({})
+                setOpenReportCreatorWordEditorModal(false)
+            }
+            setOpenConfirmDialog(false)
+        }
         
-        return <Modal
-                open={openReportCreatorWordEditorModal}
-                onClose={()=>{
-                    setSelResultForReporting({})
-                    setOpenReportCreatorWordEditorModal(false)
-                }}
-        >
-            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'2%', left:'20%', width:'55%', maxWidth:'60%'}}>
-                <Box sx={{display:'flex', flexDirection:'column',justifyContent:'start'}}
-                >
-                    <WordEditorQuill outerRef={quillRef} height={500}/>
-                    <Box sx={{display:'flex', justifyContent:'space-between', p:2}}>
-                        <Button color="success" variant="contained" onClick={()=>{
-                            handleSaveClick('verify', result)
-                            setSelResultForReporting({})
-                            setOpenReportCreatorWordEditorModal(false)
-                        }}>Save and Verify</Button>
-                        <Button color="secondary" variant="contained" onClick={()=>{
-                            handleSaveClick('draft', result)
-                            setSelResultForReporting({})
-                            setOpenReportCreatorWordEditorModal(false)
-                        }}>Save as Draft</Button>
-                        <Button color="error" variant="contained" onClick={()=>{
-                            setSelResultForReporting({})
-                            setOpenReportCreatorWordEditorModal(false)
-                        }}>Cancel</Button>
+        
+        return <>
+            <Modal
+                    open={openReportCreatorWordEditorModal}
+                    onClose={()=>{}}
+            >
+                <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'2%', left:'20%', width:'55%', maxWidth:'60%'}}>
+                    <Box sx={{display:'flex', flexDirection:'column',justifyContent:'start'}}
+                    >
+                        <WordEditorQuill outerRef={quillRef} height={500} defaultValue={result.reportdelta?JSON.parse(result.reportdelta):{}}/>
+                        <Box sx={{display:'flex', justifyContent:'space-between', p:2}}>
+                            <Button color="success" variant="contained" onClick={()=>{
+                                setOpenConfirmDialog(true)
+                            }}>Save and Verify</Button>
+                            <Button color="secondary" variant="contained" onClick={()=>{
+                                handleSaveClick('draft', result)
+                                setSelResultForReporting({})
+                                setOpenReportCreatorWordEditorModal(false)
+                            }}>Save as Draft</Button>
+                            <Button color="error" variant="contained" onClick={()=>{
+                                setSelResultForReporting({})
+                                setOpenReportCreatorWordEditorModal(false)
+                            }}>Cancel</Button>
+                        </Box>
                     </Box>
                 </Box>
-            </Box>
-        </Modal>
+            </Modal>
+                <Dialog open={openConfirmDialog} onClose={()=>{setOpenConfirmDialog(false)}}>
+                    <DialogTitle sx={{padding:4}}>Are you sure you want to continue?</DialogTitle>
+                    <DialogActions>
+                        <Button autoFocus variant='contained' color={'success'} 
+                            onClick={()=>{handleYesNoClick(true)}}
+                        >Yes</Button>
+                        <Button variant='contained' color={'error'} 
+                            onClick={()=>{handleYesNoClick(false)}}
+                        >No</Button>
+                    </DialogActions>
+                </Dialog>
+        </> 
     }
 
     const ReportWithStatusButtonModal = ({apptDetail, resultWithStatus})=>{
@@ -225,13 +247,16 @@ export default function ScheduleFlow({serviceList=[], selInv, setCurEvents=()=>{
                 mutupdatereportstatus.mutate({
                     visitid:result.visitid,
                     serviceid:result.serviceid,
-                    reportstatus:'report_verified'
+                    reportstatus:'report_verified',
+                    reportdeltaops: (quillRef.current.getContents()&&quillRef.current.getContents().ops) ? quillRef.current.getContents().ops : []
                 })
             }else if(type==='draft'){
+                console.log(quillRef.current.getContents().ops)
                 mutupdatereportstatus.mutate({
                     visitid:result.visitid,
                     serviceid:result.serviceid,
-                    reportstatus:'report_drafted'
+                    reportstatus:'report_drafted',
+                    reportdeltaops: (quillRef.current.getContents()&&quillRef.current.getContents().ops) ? quillRef.current.getContents().ops : []
                 })
             }
         }
@@ -254,10 +279,12 @@ export default function ScheduleFlow({serviceList=[], selInv, setCurEvents=()=>{
                             break;
                     }
                     return <>
-                        {(mutupdatereportstatus.isPending && mutupdatereportstatus.variables.serviceid === result.serviceid ) ?
+                        {(mutupdatereportstatus.isPending && 
+                            mutupdatereportstatus.variables.serviceid === result.serviceid && 
+                            mutupdatereportstatus.variables.visitid === result.visitid ) ?
                             <Box>
                                 <CircularProgress size={20}/>
-                                <Typography variant="body1" color="primary">Uploading Report ({result.servicename})</Typography>
+                                <Typography variant="body1" color="primary">Uploading... </Typography>
                                 </Box> : 
                             <Button variant={'text'}
                             onClick={()=>{

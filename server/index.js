@@ -100,7 +100,7 @@ async function getresultswithstatus(invQuery){
         try {
             conn = await pool.getConnection()
             var result = await conn.query(
-                `SELECT vsl.visitid, vsl.serviceid, s.servicename, vsl.reportstatus, vsl.assignedto,vsl.report
+                `SELECT vsl.visitid, vsl.serviceid, s.servicename, vsl.reportstatus, vsl.assignedto,vsl.reportdelta
                  FROM visit_service_line AS vsl INNER JOIN services as s ON vsl.serviceid = s.serviceid
                  WHERE s.category = ?
                 `,[invQuery.selInv]
@@ -508,11 +508,44 @@ async function updatereportstatus(fields = null) {
             await conn.beginTransaction() //starts transaction
             try{
                 //update the scan status in visits using visitid
-                await conn.query(
-                    `UPDATE visit_service_line SET reportstatus = ? 
-                    WHERE visitid = ? AND serviceid = ?`,
-                    [fields.reportstatus, fields.visitid, fields.serviceid]
-                )
+                if(fields.reportdeltaops && fields.reportdeltaops.length !== 0){
+                    //recieved valid ops for delta object
+                    const reportdelta = {ops:[...fields.reportdeltaops]}
+                    await conn.query(
+                        `UPDATE visit_service_line SET reportstatus = ?, reportdelta = ? 
+                        WHERE visitid = ? AND serviceid = ?`,
+                        [fields.reportstatus, JSON.stringify(reportdelta), fields.visitid, fields.serviceid]
+                    )
+                }else{
+                    //for invalid ops
+                    //used to not damage already correctly recorded delta
+                    await conn.query(
+                        `UPDATE visit_service_line SET reportstatus = ? 
+                        WHERE visitid = ? AND serviceid = ?`,
+                        [fields.reportstatus, fields.visitid, fields.serviceid]
+                    )
+                }
+                if(fields.reportstatus === 'report_verified'){
+                    var resultStatusesForVisitid = await conn.query(
+                        `SELECT reportstatus FROM visit_service_line 
+                        WHERE visitid = ?`,[fields.visitid]
+                    )
+                    //all result status for the visit id are 'report_verified' or not
+                    var allTrue = true
+                    for (var res of resultStatusesForVisitid){
+                        if(res.reportstatus !== 'report_verified'){
+                            allTrue = false
+                            break
+                        }
+                    }
+                    //if all are report verified; make the visit scan completed
+                    if(allTrue){
+                        await conn.query(
+                            `UPDATE visits SET scanstatus=? WHERE visitid=?`,
+                            ['scan_completed', fields.visitid]
+                        )
+                    }
+                }
                 await conn.commit() //final commit
                 resol()
             }catch(err){
@@ -683,6 +716,5 @@ app.listen(8080,()=>{
 })
 
 /* 
-TODO: create visits.scanstatus - varchar - default - scan_pending
-index- visits.createdat
+TODO: change report to reportdelta - longtext
 */
