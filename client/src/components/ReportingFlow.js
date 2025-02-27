@@ -14,7 +14,7 @@ import axios from 'axios'
 
 export default function ReportingFlow({selInv, setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
     const [expanded, setExpanded] = useState('report_pending')
-    const [selSchedDate, setSelSchedDate] = useState(toDate(Date.now()))
+    const [selSchedDate, setSelSchedDate] = useState(startOfToday()) 
     const [openReportCreatorWordEditorModal, setOpenReportCreatorWordEditorModal] = useState(false)
     const [selResultForReporting, setSelResultForReporting] = useState({})
     const quillRef = useRef()
@@ -123,7 +123,7 @@ export default function ReportingFlow({selInv, setCurEvents=()=>{}, setIsRegiste
                     <LocalizationProvider dateAdapter={AdapterDateFns}>
                         <DatePicker value={selSchedDate} onChange={(newValue)=>{setSelSchedDate(newValue)}}/>
                     </LocalizationProvider>
-                    <Button variant="outlined" onClick={()=>{setSelSchedDate(toDate(Date.now()))}}>Today</Button>
+                    <Button variant="outlined" onClick={()=>{setSelSchedDate(startOfToday())}}>Today</Button>
                 </Box>
     }
 

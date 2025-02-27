@@ -2,7 +2,7 @@ import { Typography, Paper, Card, Button, IconButton, CardContent, CardActions, 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { BasicGridAsTable, BasicGridBodyRow, BasicGridRowItem } from "./editor/BasicGridTable";
 import { useState, useCallback, useRef, useEffect } from "react";
-import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate, isSameDay} from 'date-fns'
+import {startOfToday, differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate, isSameDay} from 'date-fns'
 import ImageViewerModal from "./editor/ImageViewerModal";
 import ScanStatusListMenu from "./editor/ScanStatusListMenu";
 import {LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
@@ -13,7 +13,7 @@ import axios from 'axios'
 
 export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
     const [expanded, setExpanded] = useState('scan_pending')
-    const [selSchedDate, setSelSchedDate] = useState(toDate(Date.now()))
+    const [selSchedDate, setSelSchedDate] = useState(startOfToday())
     const [openReportCreatorWordEditorModal, setOpenReportCreatorWordEditorModal] = useState(false)
     const [selResultForReporting, setSelResultForReporting] = useState({})
     const quillRef = useRef()
