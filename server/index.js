@@ -73,7 +73,7 @@ async function getappointments(invQuery){
             var result = await conn.query(
                 `SELECT p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
                     v.scheduledatetime_start, v.scheduledatetime_end, v.visitid, v.fileuploads, v.createdat, v.scanstatus,
-                    JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames   
+                    JSON_ARRAYAGG(vsl.reportstatus) AS reportstatuses, JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames   
                 FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
                 INNER JOIN visit_service_line AS vsl ON v.visitid = vsl.visitid
                 INNER JOIN services as s ON vsl.serviceid = s.serviceid

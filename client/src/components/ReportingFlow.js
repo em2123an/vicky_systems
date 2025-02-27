@@ -1,8 +1,9 @@
 import { Typography, Paper, Card, Button, IconButton, CardContent, CardActions, Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, Accordion, AccordionSummary, AccordionDetails, Link, Modal, Dialog, DialogTitle, DialogActions, CircularProgress } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { BasicGridAsTable, BasicGridBodyRow, BasicGridRowItem } from "./editor/BasicGridTable";
 import { useState, useCallback, useRef, useEffect } from "react";
-import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate, isSameDay} from 'date-fns'
+import {SubWeeksOptions , differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate, isSameDay, isAfter, startOfDay, startOfYesterday, subWeeks, subMonths, subYears, startOfToday, isEqual} from 'date-fns'
 import ImageViewerModal from "./editor/ImageViewerModal";
 import ScanStatusListMenu from "./editor/ScanStatusListMenu";
 import {LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
@@ -11,14 +12,15 @@ import WordEditorQuill from "./editor/WordEditorQuill";
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query'
 import axios from 'axios'
 
-export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
-    const [expanded, setExpanded] = useState('scan_pending')
+export default function ReportingFlow({selInv, setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
+    const [expanded, setExpanded] = useState('report_pending')
     const [selSchedDate, setSelSchedDate] = useState(toDate(Date.now()))
     const [openReportCreatorWordEditorModal, setOpenReportCreatorWordEditorModal] = useState(false)
     const [selResultForReporting, setSelResultForReporting] = useState({})
     const quillRef = useRef()
     const handleOpenImageRefer = useRef()
     const queryClient = useQueryClient()
+
 
     //get reports and status of report
     const {isPending: isResultWithStatusLoading, isError: isResultWithStatusError, 
@@ -32,48 +34,6 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
         select : (response)=>(response.data),
         })
     
-    //filtering for the selected date without requiring a network
-    //TODO: check if it is better to make a API Call
-    var appts_pending = []
-    var appts_cancelled = []
-    var appts_incomplete = []
-    var appts_completed = []
-    appts_unfiltered.forEach((appts_unf)=>{
-        const appt = appts_unf.extendedProps
-        if(isSameDay(Date.parse(appt.createdat), selSchedDate)){
-            switch (appt.scanstatus) {
-                case 'scan_pending':
-                    appts_pending = [...appts_pending, appt]
-                    break;
-                case 'scan_completed':
-                    appts_completed = [...appts_completed, appt]
-                    break;
-                case 'scan_incomplete':
-                    appts_incomplete = [...appts_incomplete, appt]
-                    break;
-                case 'scan_cancelled':
-                    appts_cancelled = [...appts_cancelled, appt]
-                    break;
-                default:
-                    break;
-            }
-            
-        }
-    })
-
-    
-    // const appts = appts_unfiltered.map((appts_unf)=>{
-    //     const appt = appts_unf.extendedProps
-    //     if(isSameDay(Date.parse(appt.createdat), selSchedDate)){
-    //         return appt
-    //     }
-    // })
-    //const appts = appts_date_unfiltered.filter((appt)=>(isSameDay(Date.parse(appt.createdat), selSchedDate)))
-
-    const handleAccChange = (panel) =>(event, isExpanded) =>{
-        setExpanded(isExpanded?panel:false);
-    }
-
     //mutation call to change the status of the report
     const mutupdatereportstatus = useMutation({
         mutationKey:['update_report_status'],
@@ -92,6 +52,111 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
         }
     })
 
+    //filtering for the selected date without requiring a network
+    //TODO: check if it is better to make a API Call
+    var appts_pending = []
+    var appts_drafted = [] 
+    var appts_verified = []
+    console.log(appts_unfiltered)
+    appts_unfiltered.forEach((appts_unf)=>{
+        const appt = appts_unf.extendedProps
+        //if(isSameWeek(Date.parse(appt.createdat, selSchedDate))){}
+        //uses specified date including today
+        //works for Ultrasound and echo
+        if(selInv.reporttype === 'point'){
+            if(isSameDay(Date.parse(appt.createdat), selSchedDate)){
+                var allDraftTrue = true
+                var allVerifiedTrue = true
+                for(var rep of appt.reportstatuses){
+                    if(rep === 'report_pending'){
+                        //if pending, go to pending list 
+                        appts_pending = [...appts_pending, appt]
+                        allDraftTrue = false
+                        allVerifiedTrue = false
+                        break;
+                    }
+                    if(rep ==='report_drafted'){
+                        allVerifiedTrue = false
+                    }
+                }
+                if(allVerifiedTrue) {allDraftTrue = false}
+                if(allDraftTrue){allVerifiedTrue=false}
+                if(allDraftTrue){
+                    appts_drafted = [...appts_drafted, appt]
+                }
+                if(allVerifiedTrue){
+                    appts_verified = [...appts_verified, appt]
+                }
+            }
+        } else if (selInv.reporttype === 'duration'){
+            //start running from the selSchedDate
+            if(isAfter(Date.parse(appt.createdat), selSchedDate)){
+                var allDraftTrue = true
+                var allVerifiedTrue = true
+                for(var rep of appt.reportstatuses){
+                    if(rep === 'report_pending'){
+                        //if pending, go to pending list 
+                        appts_pending = [...appts_pending, appt]
+                        allDraftTrue = false
+                        allVerifiedTrue = false
+                        break;
+                    }
+                    if(rep ==='report_drafted'){
+                        allVerifiedTrue = false
+                    }
+                }
+                if(allVerifiedTrue) {allDraftTrue = false}
+                if(allDraftTrue){allVerifiedTrue=false}
+                if(allDraftTrue){
+                    appts_drafted = [...appts_drafted, appt]
+                }
+                if(allVerifiedTrue){
+                    appts_verified = [...appts_verified, appt]
+                }
+            }
+        }
+    })
+
+    //view for today and specified date
+    function ViewForTodaySpecifiedDate({selSchedDate,setSelSchedDate}){
+        return <Box display={'flex'} flexDirection={'row'}>
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <DatePicker value={selSchedDate} onChange={(newValue)=>{setSelSchedDate(newValue)}}/>
+                    </LocalizationProvider>
+                    <Button variant="outlined" onClick={()=>{setSelSchedDate(toDate(Date.now()))}}>Today</Button>
+                </Box>
+    }
+
+    //view for duration
+    function ViewForDurationTodayYesterday({selSchedDate,setSelSchedDate}){
+        const strOfTdy = startOfToday()
+        const strOfYest = startOfYesterday()
+        const subweekone = subWeeks(format(Date.now(),'yyyy-MM-dd'),1)
+        const submonthone = subMonths(format(Date.now(),'yyyy-MM-dd'),1)
+        const subyearone = subYears(format(Date.now(),'yyyy-MM-dd'),1)
+        return <Box width={1} display={'flex'} flexDirection={'row'} justifyContent={'end'} >
+                    {/* <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <Typography variant="body1">From</Typography>
+                        <DatePicker value={selSchedDate} onChange={(newValue)=>{setSelSchedDate(newValue)}}/>
+                        <Typography variant="body1">To</Typography>
+                        <DatePicker value={selSchedDate} onChange={(newValue)=>{setSelSchedDate(newValue)}}/>
+                    </LocalizationProvider> */}
+                    <Button variant={isEqual(selSchedDate,strOfTdy)?'contained':'outlined'} onClick={()=>{setSelSchedDate(strOfTdy)}}
+                        >Today</Button>
+                    <Button variant={isEqual(selSchedDate,strOfYest)?'contained':'outlined'} onClick={()=>{setSelSchedDate(strOfYest)}}
+                        >Yesterday</Button>
+                    <Button variant={isEqual(selSchedDate,subweekone)?'contained':'outlined'} onClick={()=>{setSelSchedDate(subweekone)}}
+                        >Week</Button>
+                    <Button variant={isEqual(selSchedDate,submonthone)?'contained':'outlined'} onClick={()=>{setSelSchedDate(submonthone)}}
+                        >Month</Button>
+                    <Button variant={isEqual(selSchedDate,subyearone)?'contained':'outlined'} onClick={()=>{setSelSchedDate(subyearone)}}
+                        >Year</Button>
+                </Box>
+    }
+
+    const handleAccChange = (panel) =>(event, isExpanded) =>{
+        setExpanded(isExpanded?panel:false);
+    }
     //check for files or null
     function checkForFile(fileuploads){
         if(Boolean(fileuploads) && Boolean(fileuploads.files)){
@@ -114,6 +179,7 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
         const day = differenceInCalendarDays(Date.now(), Date.parse(dob)) 
         if (month <1) return `${day} D`
     }
+    //to open the pdf in a new tab
     function openNewPDFTab(isLocalLoad, filePath, file){
         try {
             if(!isLocalLoad){
@@ -134,15 +200,8 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
             return
         }
     }
-    //for detail viewing if needed
-    function handleDetailClick(info){
-        //click on events - to - see detail views
-        setIsDetailViewing(true)
-        setIsRegistering(false)
-        setCurEvents({...info.event.extendedProps})
-    }
 
-    
+    //Report creating word editor
     const ReportCreatorWordEditorModal = ({handleSaveClick, result})=>{
         const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
 
@@ -257,14 +316,8 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
     }
 
     const GridShowAppts = ({appts}) =>{
-        var selHeader = []
-        const header = ['Patient info', 'Visit info', 'Documents','Scan Status']
-        const headerForScannerIsReporter = [...header, 'Report']
-        if(selInv && selInv.scannerIsReporter){
-            selHeader = headerForScannerIsReporter
-        }else{
-            selHeader = header
-        }
+        const selHeader = ['Patient info', 'Visit info', 'Documents','Scan Status','Report']
+        
         return <BasicGridAsTable columnHeaderList={selHeader}>
                 {appts.map((apptDetail)=>{
                     return <BasicGridBodyRow>
@@ -316,12 +369,11 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
                         <BasicGridRowItem>
                             <ScanStatusListMenu initialSelectedOption={apptDetail.scanstatus} selVisitid={apptDetail.visitid}/>
                         </BasicGridRowItem>
-                        {(selInv && selInv.scannerIsReporter) && 
-                            <BasicGridRowItem>
+                        <BasicGridRowItem>
                                 {(apptDetail.serviceids && isResultWithStatusSuccess) && 
                                     <ReportWithStatusButtonModal apptDetail={apptDetail} resultWithStatus={resultWithStatus?resultWithStatus:[]}/>
                                 }
-                            </BasicGridRowItem>}
+                            </BasicGridRowItem>
                     </BasicGridBodyRow>
                 })}
             </BasicGridAsTable>
@@ -329,76 +381,52 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
 
     return <Box>
         <Box display={'flex'} flexDirection={'row'} justifyContent={'space-around'} m={2}>
-            <Button variant="contained" onClick={()=>{
-                    setIsRegistering(true)
-                    setIsDetailViewing(false)
-                    setCurEvents({
-                        extendedProps: {
-                            calView: false
-                        },
-                    })
-                }}>Make New Appointment</Button>
-                <Box display={'flex'} flexDirection={'row'}>
-                    <LocalizationProvider dateAdapter={AdapterDateFns}>
-                        <DatePicker value={selSchedDate} onChange={(newValue)=>{setSelSchedDate(newValue)}}/>
-                    </LocalizationProvider>
-                    <Button variant="outlined" onClick={()=>{setSelSchedDate(toDate(Date.now()))}}>Today</Button>
-                </Box>
+                {selInv.reporttype ==='point' ?
+                    <ViewForTodaySpecifiedDate selSchedDate={selSchedDate} setSelSchedDate={setSelSchedDate}/>
+                : selInv.reporttype ==='duration' &&
+                    <ViewForDurationTodayYesterday selSchedDate={selSchedDate} setSelSchedDate={setSelSchedDate}/>
+                }
         </Box>
-        {/* accordions for scan pending, scan complete, scan cancelled; possilbly emergency */}
-        <Accordion expanded={expanded === 'scan_pending'} onChange={handleAccChange('scan_pending')} sx={{m:2}}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="scan_pending">
-                    <Typography component='span'>Scan Pending {(appts_pending && appts_pending.length>0)&&`(${appts_pending.length})`}</Typography>
+        {/* accordions for report pending, report drafted, report verified; possilbly emergency */}
+        <Accordion expanded={expanded === 'report_pending'} onChange={handleAccChange('report_pending')} sx={{m:2}}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="report_pending">
+                    <Typography component='span'>Report Pending {(appts_pending && appts_pending.length>0)&&`(${appts_pending.length})`}</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                    {appts_pending!==0
+                    {appts_pending && appts_pending.length!==0
                         ?<>
                             <GridShowAppts appts={appts_pending}/>
                         </>
-                        :<Typography component={'span'}>No Scan Pending</Typography>}
+                        :<Typography component={'span'}>No Report Pending</Typography>}
                 </AccordionDetails>
         </Accordion>
-        {/* For Scan Completed visits */}
-        <Accordion expanded={expanded === 'scan_complete'} onChange={handleAccChange('scan_complete')} sx={{m:2}}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="scan_complete">
-                    <Typography component='span'>Scan Completed {(appts_completed && appts_completed.length>0)&&`(${appts_completed.length})`}</Typography>
+        {/* For drafted reports */}
+        <Accordion expanded={expanded === 'report_drafted'} onChange={handleAccChange('report_drafted')} sx={{m:2}}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="report_drafted">
+                    <Typography component='span'>Report Drafted {(appts_drafted && appts_drafted.length>0)&&`(${appts_drafted.length})`}</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                    {appts_completed!==0
+                    {appts_drafted && appts_drafted.length!==0
                         ? <>
-                            <GridShowAppts appts={appts_completed} />
+                            <GridShowAppts appts={appts_drafted} />
                         </>
-                        :<Typography component={'span'}>No Complete Scans</Typography>}
+                        :<Typography component={'span'}>No Drafted Reports</Typography>}
                 </AccordionDetails>
         </Accordion>
-        {/* For Scan Incompleted visits */}
-        <Accordion expanded={expanded === 'scan_incomplete'} onChange={handleAccChange('scan_incomplete')} sx={{m:2}}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="scan_incomplete">
-                    <Typography component='span'>Scan Incomplete {(appts_incomplete && appts_incomplete.length>0)&&`(${appts_incomplete.length})`}</Typography>
+        {/* For verified reports */}
+        <Accordion expanded={expanded === 'report_verified'} onChange={handleAccChange('report_verified')} sx={{m:2}}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="report_verified">
+                    <Typography component='span'>Verified Reports {(appts_verified && appts_verified.length>0)&&`(${appts_verified.length})`}</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                    {appts_incomplete!==0
+                    {appts_verified && appts_verified.length!==0
                         ? <>
-                            <GridShowAppts appts={appts_incomplete}/>
+                            <GridShowAppts appts={appts_verified}/>
                         </>
-                        :<Typography component={'span'}>No Complete Scans</Typography>}
-                </AccordionDetails>
-        </Accordion>
-        {/* For Scan Cancelled visits */}
-        <Accordion expanded={expanded === 'scan_cancelled'} onChange={handleAccChange('scan_cancelled')} sx={{m:2}}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon/>} aria-controls="scan_cancelled">
-                    <Typography component='span'>Scan Cancelled {(appts_cancelled && appts_cancelled.length>0)&&`(${appts_cancelled.length})`}</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                    {appts_cancelled!==0
-                        ?<>
-                            <GridShowAppts appts={appts_cancelled}/>
-                        </>
-                        :<Typography component={'span'}>No Cancelled Scans</Typography>}
+                        :<Typography component={'span'}>No Verified Reports</Typography>}
                 </AccordionDetails>
         </Accordion>
         {/* Image viewing modal */}
-        {/*<ImageViewerModal/>*/}
         <ImageViewerModal handleOpenImageRef={handleOpenImageRefer} />
   </Box>
 }

@@ -13,6 +13,7 @@ import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query'
 import axios from 'axios'
 import CustomAppbarDrawer from "./CustomAppbarDrawer"
 import VisitFront from "./VisitFront"
+import ReportingFront from "./ReportingFront"
 
 export default function MainPlayground(){
     //main state hub
@@ -405,6 +406,29 @@ export default function MainPlayground(){
         case 'Scan-Worklist':
             break;
         case 'Reporting':
+            return <>
+                    {/* for schedule view */}
+                    {/* for loading view */}
+                    <Backdrop
+                        sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
+                        open={isGetApptsLoading}
+                        onClick={()=>{}}
+                    >
+                        <CircularProgress/>
+                    </Backdrop>
+                        {/* for snack bar (info) view */}
+                    <Snackbar
+                        anchorOrigin={{vertical:'top', horizontal:'center'}}
+                        open={snackHandle.snackopen}
+                        autoHideDuration={5000}
+                        onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
+                        message={snackHandle.snackmessage}
+                        />
+                    <ReportingFront selInv={selInv} setSelInv={setSelInv} 
+                                setSelCurOnView={setSelCurOnView} appts={getAppts} 
+                                setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} 
+                                setCurEvents={setCurEvents}/>
+            </>
             break;
         default:
             break;
