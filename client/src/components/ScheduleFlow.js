@@ -1,6 +1,7 @@
 import { Typography, Paper, Card, Button, IconButton, CardContent, CardActions, Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, Accordion, AccordionSummary, AccordionDetails, Link, Modal, Dialog, DialogTitle, DialogActions, CircularProgress } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Grid from "@mui/material/Grid2";
+import { BasicGridAsTable, BasicGridBodyRow, BasicGridRowItem } from "./editor/BasicGridTable";
 import { styled } from '@mui/material/styles';
 import { useState, useCallback, useRef, useEffect } from "react";
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate, isSameDay} from 'date-fns'
@@ -11,50 +12,6 @@ import {AdapterDateFns} from '@mui/x-date-pickers/AdapterDateFnsV3'
 import WordEditorQuill from "./editor/WordEditorQuill";
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query'
 import axios from 'axios'
-
-
-function BasicGridAsTable({columnHeaderList, children}) {
-  return (
-    <Box sx={{ flexGrow: 1 }}>
-      <Grid container >
-        {/* Table headers */}
-        <Grid container size={12} 
-            sx={{ '--Grid-borderWidth': '1px',
-                borderBottom: 'var(--Grid-borderWidth) solid',
-                borderColor: 'divider'}}
-        >
-            {columnHeaderList.map((column)=>{
-                return <Grid size='grow'>
-                    <Typography sx={{width:'1',textAlign:'center'}} variant="body1">{column}</Typography>
-                </Grid>
-            })}
-        </Grid>
-        {/* Table body */}
-        <Grid container size={12}>
-            {/* Each Table Row */}
-            {children}
-        </Grid>
-      </Grid>
-    </Box>
-  );
-}
-
-function BasicGridBodyRow({children}){
-    return <Grid container size={12} justifyContent={'center'} 
-            alignItems={'center'}
-            sx={{ '--Grid-borderWidth': '1px',
-                borderBottom: 'var(--Grid-borderWidth) solid',
-                borderColor: 'divider'}}>
-        {children}
-    </Grid>
-}
-
-function BasicGridRowItem({children}){
-    return <Grid size={'grow'}>
-        {children}
-    </Grid>
-}
-
 
 export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
     const [expanded, setExpanded] = useState('scan_pending')
