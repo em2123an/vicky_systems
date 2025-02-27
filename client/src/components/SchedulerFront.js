@@ -6,13 +6,12 @@ import CustomAppbarDrawer from "./CustomAppbarDrawer"
 import { useEffect, useState } from "react"
 
 export default function SchedulerFront({selInv, setSelInv, setSelCurOnView, setIsRegistering, setIsDetailViewing, appts, setCurEvents}){
-    const invlist = ['MRI','CT', 'X-RAY','ULTRASOUND','ECHO']
     const invSchedTypeList = [
-        {title:'MRI', type:'cal', scannerIsReporter:false},
-        {title:'CT', type:'flow', scannerIsReporter:false},
-        {title:'X-RAY', type:'flow', scannerIsReporter:false},
-        {title:'ULTRASOUND', type:'flow', scannerIsReporter:true},
-        {title:'ECHO', type:'flow', scannerIsReporter:true},
+        {title:'MRI', type:'cal', scannerIsReporter:false, reporttype:'duration'},
+        {title:'CT', type:'flow', scannerIsReporter:false, reporttype:'duration'},
+        {title:'X-RAY', type:'flow', scannerIsReporter:false, reporttype:'duration'},
+        {title:'ULTRASOUND', type:'flow', scannerIsReporter:true, reporttype:'point'},
+        {title:'ECHO', type:'flow', scannerIsReporter:true, reporttype:'point'},
     ]
 
     useEffect(()=>{
