@@ -2,14 +2,16 @@ import { useState } from "react"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format} from 'date-fns'
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Backdrop, CircularProgress, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography } from "@mui/material"
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Backdrop, CircularProgress, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography, Modal, Dialog } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
 import axios from "axios"
+import EditAppointmentCal from "./EditAppointmentCal"
 
 export default function PatDetailView({oldPatDetail, setIsDetailViewing, serviceList, discounters}){
     const [expanded, setExpanded] = useState('documentAcc')
+    const [openEditAppointmentModal, setOpenEditAppointmentModal] = useState(false)
     const queryClient = useQueryClient()
 
     const handleAccChange = (panel) =>(event, isExpanded) =>{
@@ -36,6 +38,19 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
         if (month<12 && month>=1) return `${month} M`
         const day = differenceInCalendarDays(Date.now(), Date.parse(dob)) 
         if (month <1) return `${day} D`
+    }
+    //get age out of dob
+    function getAgeAsObject(dob){
+        var res = {age_yrs:'', age_mns:'',age_dys:''}
+        const year = differenceInCalendarYears(Date.now(),Date.parse(dob))
+        if (year >= 5) return {...res,age_yrs:`${year} Y`}
+        const month = differenceInCalendarMonths(Date.now(), Date.parse(dob))
+        if (month >= 12){
+            return {...res,age_yrs:`${Math.floor(month/12)} Y`, age_mns:`${month%12} M`}  
+        } 
+        if (month<12 && month>=1) return {...res, age_mns:`${month} M`} 
+        const day = differenceInCalendarDays(Date.now(), Date.parse(dob)) 
+        if (month <1) return {...res,age_dys:`${day} D`} 
     }
     //get appointment start and end time out scheduledatetime
     function getAppointment(startDT, endDT){
@@ -136,6 +151,15 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
             queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
         }
     })
+    //mutation call to update the appointment
+    const mutupdateappt = useMutation({
+        mutationKey:['update_appointment'],
+        mutationFn: (updatedapptdata)=>(
+            axios.post('http://localhost:8080/updateappointment',updatedapptdata,{headers:{"Content-Type":"application/x-www-form-urlencoded"}})),
+        onSuccess: ()=>{
+            
+        }
+    })
 
     //handle upload click on patientRegUploader
     function handleUploadClick(documentUploadType, event){
@@ -180,6 +204,14 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                 })),
         })
     }
+    function EditAppointmentModal (){
+        return <Dialog fullScreen open={openEditAppointmentModal} onClose={()=>{setOpenEditAppointmentModal(false)}}>
+            <Toolbar/>
+            <EditAppointmentCal mutupdateappt={mutupdateappt} initialValues={} handleOnCancelEditAppt={handleOnCancelEditAppt}
+                selInv={selInv} serviceList={serviceList} curEvents={curEvents} setCurEvents={setCurEvents}
+                getAppts={getAppts} listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
+        </Dialog>
+    }
     //list of file uploaded to be displayed
     //TODO: query to get files or with optimistic updata
     return <Box sx={{paddingX:2, paddingY:2}}>
@@ -202,6 +234,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                     sx={{flexGrow:2}}
                     value={getAppointment(patDetail.scheduledatetime_start, patDetail.scheduledatetime_end)}/>
             }
+            <Button variant="contained" onClick={()=>{}}>Edit Appointment</Button>
         </Box>
         <Box>
             {/* Accordion for service lists */}
