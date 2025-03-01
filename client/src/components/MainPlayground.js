@@ -310,7 +310,7 @@ export default function MainPlayground(){
                                         <StepLabel>{value}</StepLabel>
                                     </Step>)
                         })}
-                    </Stepper>
+                    </Stepper> 
                     {activeStep===0 ? 
                             <PatientRegForm selInv={selInv} serviceList={serviceList} curEvents={curEvents} setCurEvents={setCurEvents} 
                                 formik={formik} isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
@@ -361,7 +361,10 @@ export default function MainPlayground(){
     //TODO: does getAppts need to be successfuly for patient detail viewing??
     if(isDetailViewing && isServiceListSuccess){
         return <>
-                <PatDetailView discounters={discounters} oldPatDetail={curEvents} setIsDetailViewing={setIsDetailViewing} serviceList={serviceList}/>
+                <PatDetailView discounters={discounters} oldPatDetail={curEvents} 
+                setIsDetailViewing={setIsDetailViewing} serviceList={serviceList}
+                selInv={selInv} setCurEvents={setCurEvents} 
+                getAppts={getAppts} setListSelectedServices={setListSelectedServices}/>
             </>
     }
 

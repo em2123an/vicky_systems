@@ -202,7 +202,7 @@ async function getapptdetails(visitid){
         try {
             conn = await pool.getConnection()
             var result = await conn.query(
-                `SELECT p.firstname, p.lastname, p.dob, p.phonenumber, p.sex,
+                `SELECT p.firstname, p.lastname, p.dob, p.phonenumber, p.sex, p.patientid,
                     v.scheduledatetime_start, v.scheduledatetime_end, v.visitid, v.fileuploads,
                     JSON_ARRAYAGG(s.serviceid) as serviceids, JSON_ARRAYAGG(s.servicename) as servicenames   
                 FROM patients AS p INNER JOIN visits AS v ON p.patientid = v.patientid
@@ -294,6 +294,52 @@ async function makeappointment(fields = null) {
                 }
                 await conn.commit() //final commit
                 resol(visitId)
+            }catch(err){
+                await conn.rollback()
+                console.log(err.message)
+                rejec(err)
+            }
+        } catch (err) {
+            console.log(err.message)
+            rejec(err)
+        } finally{
+            if(conn) conn.release()
+        }
+    })
+}
+//update appointments
+async function updateappointment(fields = null) {
+    return new Promise(async (resol, rejec)=>{
+        var conn;
+        try {
+            conn = await pool.getConnection()
+            await conn.beginTransaction() //starts transaction
+            try{//update patient and visit table details
+                await conn.query(
+                    `UPDATE patients SET firstname=?, lastname=?, dob=?, sex=?, phonenumber=?
+                     WHERE patientid = ?`,
+                     [fields.firstname, fields.lastname, fields.dob, fields.sex, fields.mobileno,fields.patientid]
+                )
+                await conn.query(
+                    `UPDATE visits SET scheduledatetime_start=?, scheduledatetime_end=?
+                     WHERE visitid=?`,
+                    [fields.sched_start, fields.sched_end, fields.visitid]
+                )
+                //for to be completed
+                for(var selectedserviceid of fields.services){
+                    //update service to visit_service_line
+                    await conn.query(
+                        'INSERT INTO visit_service_line (visitid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), CAST(? AS UNSIGNED INTEGER))',
+                        [visitId,selectedserviceid]
+                    )
+                    //add service to invoice_service_line
+                    await conn.query(
+                        'INSERT INTO invoice_service_line (invoiceid, serviceid) VALUES (CAST(? AS UNSIGNED INTEGER), CAST(? AS UNSIGNED INTEGER))',
+                        [invoiceid,selectedserviceid]
+                    )
+                }
+                await conn.commit() //final commit
+                resol()
             }catch(err){
                 await conn.rollback()
                 console.log(err.message)
@@ -631,6 +677,16 @@ app.post('/makeappointment', bodyParser.urlencoded({extended:true}), (req,res,ne
     console.log(req.body)
     makeappointment(req.body).then((visitId)=>{
         res.status(200).send({'visitid':visitId}).end()
+    }).catch((err)=>{
+        res.sendStatus(505)
+        res.end()
+    })
+})
+
+app.post('/updateappointment', bodyParser.urlencoded({extended:true}), (req,res,next)=>{
+    console.log(req.body)
+    updateappointment(req.body).then(()=>{
+        res.sendStatus(200).end()
     }).catch((err)=>{
         res.sendStatus(505)
         res.end()

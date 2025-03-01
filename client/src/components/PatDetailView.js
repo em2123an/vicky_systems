@@ -1,15 +1,20 @@
 import { useState } from "react"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
-import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format} from 'date-fns'
+import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate} from 'date-fns'
 import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Backdrop, CircularProgress, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography, Modal, Dialog } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
+import {useFormik} from 'formik'
+import { array, number, object, string } from 'yup'
 import axios from "axios"
 import EditAppointmentCal from "./EditAppointmentCal"
+import { purple } from "@mui/material/colors"
 
-export default function PatDetailView({oldPatDetail, setIsDetailViewing, serviceList, discounters}){
+export default function PatDetailView({oldPatDetail, setIsDetailViewing, serviceList, discounters,
+    selInv, setCurEvents, getAppts, setListSelectedServices
+}){
     const [expanded, setExpanded] = useState('documentAcc')
     const [openEditAppointmentModal, setOpenEditAppointmentModal] = useState(false)
     const queryClient = useQueryClient()
@@ -43,14 +48,14 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
     function getAgeAsObject(dob){
         var res = {age_yrs:'', age_mns:'',age_dys:''}
         const year = differenceInCalendarYears(Date.now(),Date.parse(dob))
-        if (year >= 5) return {...res,age_yrs:`${year} Y`}
+        if (year >= 5) return {...res,age_yrs:`${year}`}
         const month = differenceInCalendarMonths(Date.now(), Date.parse(dob))
         if (month >= 12){
-            return {...res,age_yrs:`${Math.floor(month/12)} Y`, age_mns:`${month%12} M`}  
+            return {...res,age_yrs:`${Math.floor(month/12)}`, age_mns:`${month%12}`}  
         } 
-        if (month<12 && month>=1) return {...res, age_mns:`${month} M`} 
+        if (month<12 && month>=1) return {...res, age_mns:`${month}`} 
         const day = differenceInCalendarDays(Date.now(), Date.parse(dob)) 
-        if (month <1) return {...res,age_dys:`${day} D`} 
+        if (month <1) return {...res,age_dys:`${day}`} 
     }
     //get appointment start and end time out scheduledatetime
     function getAppointment(startDT, endDT){
@@ -204,13 +209,67 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                 })),
         })
     }
+    //handle Edit appointment modal opening and closing
+    function handleOnCloseEditAppt(){
+        setOpenEditAppointmentModal(false)
+    }
+    const ageAsObject = getAgeAsObject(patDetail.dob)
+    const initialValues = {
+        firstname:patDetail.firstname,
+        lastname:patDetail.lastname,
+        sex:patDetail.sex,
+        //mobileno:patDetail.mobileno,
+        age_yrs:ageAsObject.age_yrs,
+        age_mns:ageAsObject.age_mns,
+        age_dys:ageAsObject.age_dys,
+        selservices : patDetail.services
+    }
+    //formik setup
+    const formik = useFormik({
+        initialValues :{...initialValues},
+        validationSchema : object({
+            firstname: string().required("Required"),
+            lastname: string().required("Required"),
+            sex: string().required("Required"),
+            mobileno: string().matches(new RegExp('^[0-9]+$')).required("Required"),
+            age_yrs: number().positive().integer().test((val, ctx)=>{
+                var {age_dys, age_mns} = ctx.parent
+                if(!(age_dys || age_mns)) return val!=null
+                return true
+            }),
+            age_mns: number().positive().integer().test((val, ctx)=>{
+                var {age_yrs, age_dys} = ctx.parent
+                if(!(age_yrs || age_dys)) return val!=null
+                return true
+            }),
+            age_dys: number().positive().integer().test((val, ctx)=>{
+                var {age_yrs, age_mns} = ctx.parent
+                if(!(age_yrs || age_mns)) return val!=null
+                return true
+            }),
+            selservices : array().min(1)
+        }),
+        validateOnChange : true,
+        })
     function EditAppointmentModal (){
-        return <Dialog fullScreen open={openEditAppointmentModal} onClose={()=>{setOpenEditAppointmentModal(false)}}>
-            <Toolbar/>
-            <EditAppointmentCal mutupdateappt={mutupdateappt} initialValues={} handleOnCancelEditAppt={handleOnCancelEditAppt}
-                selInv={selInv} serviceList={serviceList} curEvents={curEvents} setCurEvents={setCurEvents}
-                getAppts={getAppts} listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
-        </Dialog>
+        const localCurEvents = {
+            start: toDate(patDetail.scheduledatetime_start),
+            end : toDate(patDetail.scheduledatetime_end),
+            editable : true,
+            backgroundColor: purple[800],
+            borderColor: purple[800],
+            extendedProps: {
+                calView: selInv.type === 'cal'
+            },
+        }
+        return <><Modal open={openEditAppointmentModal} onClose={()=>{setOpenEditAppointmentModal(false)}}>
+            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'2%', left:'5%', width:'90%', maxWidth:'90%'}}>
+                <EditAppointmentCal mutupdateappt={mutupdateappt} formik={formik} handleOnCloseEditAppt={handleOnCloseEditAppt}
+                    selInv={selInv} serviceList={serviceList} curEvents={localCurEvents} setCurEvents={setCurEvents}
+                    getAppts={getAppts} listSelectedServices={patDetail.services} visitId={patDetail.visitid} patientId={patDetail.patientid} 
+                    setListSelectedServices={setListSelectedServices}/>
+            </Box>
+        </Modal></>
     }
     //list of file uploaded to be displayed
     //TODO: query to get files or with optimistic updata
@@ -234,7 +293,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                     sx={{flexGrow:2}}
                     value={getAppointment(patDetail.scheduledatetime_start, patDetail.scheduledatetime_end)}/>
             }
-            <Button variant="contained" onClick={()=>{}}>Edit Appointment</Button>
+            <Button variant="contained" onClick={()=>{setOpenEditAppointmentModal(true)}}>Edit Appointment</Button>
         </Box>
         <Box>
             {/* Accordion for service lists */}
@@ -302,5 +361,6 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                 </AccordionDetails>
             </Accordion>
         </Box>
+        <EditAppointmentModal/>
     </Box>
 }
