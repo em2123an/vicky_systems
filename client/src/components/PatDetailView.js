@@ -1,10 +1,12 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate} from 'date-fns'
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Backdrop, CircularProgress, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography, Modal, Dialog } from "@mui/material"
+import { DialogTitle, DialogActions, Card, CardContent, Accordion, AccordionDetails, AccordionSummary, Box, Button, Backdrop, CircularProgress, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography, Modal, Dialog } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import DeleteIcon from '@mui/icons-material/Delete'
+import WordEditorQuill from "./editor/WordEditorQuill";
+import { BasicGridAsTable,BasicGridBodyRow,BasicGridRowItem } from "./editor/BasicGridTable"
+import ScanStatusListMenu from "./editor/ScanStatusListMenu";
 import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
 import {useFormik} from 'formik'
 import { array, number, object, string } from 'yup'
@@ -17,6 +19,9 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
 }){
     const [expanded, setExpanded] = useState('documentAcc')
     const [openEditAppointmentModal, setOpenEditAppointmentModal] = useState(false)
+    const [openReportCreatorWordEditorModal, setOpenReportCreatorWordEditorModal] = useState(false)
+    const [selResultForReporting, setSelResultForReporting] = useState({})
+    const quillRef = useRef()
     const queryClient = useQueryClient()
 
     const handleAccChange = (panel) =>(event, isExpanded) =>{
@@ -162,7 +167,25 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
         mutationFn: (updatedapptdata)=>(
             axios.post('http://localhost:8080/updateappointment',updatedapptdata,{headers:{"Content-Type":"application/x-www-form-urlencoded"}})),
         onSuccess: ()=>{
-            
+            queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
+        }
+    })
+
+    //mutation call to change the status of the report
+    const mutupdatereportstatus = useMutation({
+        mutationKey:['update_report_status'],
+        mutationFn: (updatereportstatus)=>(
+            axios.post('http://localhost:8080/updatereportstatus',updatereportstatus,
+                {headers:{"Content-Type":"application/x-www-form-urlencoded"}})
+            ),
+        onSuccess: (data,variables,context)=>{  
+            queryClient.invalidateQueries({queryKey:['get_results_with_status']})
+            if(variables.reportstatus==='report_verified'){
+                queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
+            }
+            },
+        onSettled: ()=>{
+            mutupdatereportstatus.reset()
         }
     })
 
@@ -252,6 +275,20 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
         validateOnChange : true,
         })
     function EditAppointmentModal (){
+        const invSchedTypeList = [
+            {title:'MRI', type:'cal', scannerIsReporter:false, reporttype:'duration'},
+            {title:'CT', type:'flow', scannerIsReporter:false, reporttype:'duration'},
+            {title:'X-RAY', type:'flow', scannerIsReporter:false, reporttype:'duration'},
+            {title:'ULTRASOUND', type:'flow', scannerIsReporter:true, reporttype:'point'},
+            {title:'ECHO', type:'flow', scannerIsReporter:true, reporttype:'point'},
+        ]
+        var localSelInv = {}
+        for (var inv of invSchedTypeList){
+            if(inv.title===patDetail.services[0].category){
+                localSelInv = inv
+                break
+            }
+        }
         const localCurEvents = {
             start: toDate(patDetail.scheduledatetime_start),
             end : toDate(patDetail.scheduledatetime_end),
@@ -259,17 +296,150 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
             backgroundColor: purple[800],
             borderColor: purple[800],
             extendedProps: {
-                calView: selInv.type === 'cal'
+                calView: localSelInv.type === 'cal'
             },
         }
         return <><Modal open={openEditAppointmentModal} onClose={()=>{setOpenEditAppointmentModal(false)}}>
-            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'2%', left:'5%', width:'90%', maxWidth:'90%'}}>
+            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'2%', left:'5%'}}>
                 <EditAppointmentCal mutupdateappt={mutupdateappt} formik={formik} handleOnCloseEditAppt={handleOnCloseEditAppt}
-                    selInv={selInv} serviceList={serviceList} curEvents={localCurEvents} setCurEvents={setCurEvents}
+                    selInv={localSelInv} serviceList={serviceList} curEvents={localCurEvents} setCurEvents={setCurEvents}
                     getAppts={getAppts} listSelectedServices={patDetail.services} visitId={patDetail.visitid} patientId={patDetail.patientid} 
                     setListSelectedServices={setListSelectedServices}/>
             </Box>
         </Modal></>
+    }
+    const ReportCreatorWordEditorModal = ({handleSaveClick, result})=>{
+        const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+
+        function handleYesNoClick(status){
+            if(status){
+                handleSaveClick('verify', result)
+                setSelResultForReporting({})
+                setOpenReportCreatorWordEditorModal(false)
+            }
+            setOpenConfirmDialog(false)
+        }
+        
+        
+        return <>
+            <Modal
+                    open={openReportCreatorWordEditorModal}
+                    onClose={()=>{}}
+            >
+                <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'2%', left:'20%', width:'55%', maxWidth:'60%'}}>
+                    <Box sx={{display:'flex', flexDirection:'column',justifyContent:'start'}}
+                    >
+                        <WordEditorQuill outerRef={quillRef} height={500} defaultValue={result.reportdelta?JSON.parse(result.reportdelta):{}}/>
+                        <Box sx={{display:'flex', justifyContent:'space-between', p:2}}>
+                            <Button color="success" variant="contained" onClick={()=>{
+                                setOpenConfirmDialog(true)
+                            }}>Save and Verify</Button>
+                            <Button color="secondary" variant="contained" onClick={()=>{
+                                handleSaveClick('draft', result)
+                                setSelResultForReporting({})
+                                setOpenReportCreatorWordEditorModal(false)
+                            }}>Save as Draft</Button>
+                            <Button color="error" variant="contained" onClick={()=>{
+                                setSelResultForReporting({})
+                                setOpenReportCreatorWordEditorModal(false)
+                            }}>Cancel</Button>
+                        </Box>
+                    </Box>
+                </Box>
+            </Modal>
+                <Dialog open={openConfirmDialog} onClose={()=>{setOpenConfirmDialog(false)}}>
+                    <DialogTitle sx={{padding:4}}>Are you sure you want to continue?</DialogTitle>
+                    <DialogActions>
+                        <Button autoFocus variant='contained' color={'success'} 
+                            onClick={()=>{handleYesNoClick(true)}}
+                        >Yes</Button>
+                        <Button variant='contained' color={'error'} 
+                            onClick={()=>{handleYesNoClick(false)}}
+                        >No</Button>
+                    </DialogActions>
+                </Dialog>
+        </> 
+    }
+
+    const ReportWithStatusButtonModal = ({apptDetail, resultWithStatus})=>{
+        function handleSaveClick(type,result){
+            if(type==='verify'){
+                mutupdatereportstatus.mutate({
+                    visitid:result.visitid,
+                    serviceid:result.serviceid,
+                    reportstatus:'report_verified',
+                    reportdeltaops: (quillRef.current.getContents()&&quillRef.current.getContents().ops) ? quillRef.current.getContents().ops : []
+                })
+            }else if(type==='draft'){
+                console.log(quillRef.current.getContents().ops)
+                mutupdatereportstatus.mutate({
+                    visitid:result.visitid,
+                    serviceid:result.serviceid,
+                    reportstatus:'report_drafted',
+                    reportdeltaops: (quillRef.current.getContents()&&quillRef.current.getContents().ops) ? quillRef.current.getContents().ops : []
+                })
+            }
+        }
+        return <>
+            {apptDetail.serviceids.map((selServiceid)=>{
+            for(var result of resultWithStatus){
+                if(result.serviceid===selServiceid && result.visitid===apptDetail.visitid){
+                    var reportApplier = ''
+                    switch (result.reportstatus) {
+                        case 'report_pending':
+                            reportApplier = 'Create'
+                            break;
+                        case 'report_drafted':
+                            reportApplier = 'Edit'
+                            break;
+                        case 'report_verified':
+                            reportApplier = 'View'
+                            break;
+                        default:
+                            break;
+                    }
+                    return <>
+                        {(mutupdatereportstatus.isPending && 
+                            mutupdatereportstatus.variables.serviceid === result.serviceid && 
+                            mutupdatereportstatus.variables.visitid === result.visitid ) ?
+                            <Box>
+                                <CircularProgress size={20}/>
+                                <Typography variant="body1" color="primary">Uploading... </Typography>
+                                </Box> : 
+                            <Button variant={'text'}
+                            onClick={()=>{
+                                setSelResultForReporting(result)
+                                setOpenReportCreatorWordEditorModal(true)
+                            }}
+                            >{reportApplier} ({result.servicename})</Button> }
+                        
+                    </> 
+                }
+            }
+        })}
+        <ReportCreatorWordEditorModal result={selResultForReporting} handleSaveClick={handleSaveClick}/>
+        </>
+    }
+
+    const GridShowScanReportStatus = ({apptDetail}) =>{
+        var selHeader = ['Visit info','Scan Status','Report']
+        return <BasicGridAsTable columnHeaderList={selHeader}>
+                <BasicGridBodyRow>
+                        <BasicGridRowItem><Card elevation={0}>
+                            <CardContent>
+                                {apptDetail.servicenames&&apptDetail.servicenames.map((servicename)=>{
+                                    return <Typography variant='body1' align="center" sx={{p:1}}>{servicename}</Typography>
+                                    })}
+                            </CardContent>    
+                            </Card></BasicGridRowItem>
+                        <BasicGridRowItem>
+                            <ScanStatusListMenu initialSelectedOption={apptDetail.scanstatus} selVisitid={apptDetail.visitid}/>
+                        </BasicGridRowItem> 
+                            <BasicGridRowItem>
+                            <ReportWithStatusButtonModal apptDetail={apptDetail} resultWithStatus={apptDetail.reportStatus?apptDetail.reportStatus:[]}/>
+                            </BasicGridRowItem>
+                    </BasicGridBodyRow>
+            </BasicGridAsTable>
     }
     //list of file uploaded to be displayed
     //TODO: query to get files or with optimistic updata
@@ -303,16 +473,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                 </AccordionSummary>
                 <AccordionDetails>
                     {patDetail.services.length!==0
-                        ?<List>
-                            {patDetail.services.map((service,index)=>(
-                                <ListItem key={index} secondaryAction={
-                                        <IconButton edge='end'><DeleteIcon/></IconButton>
-                                    }>
-                                    <ListItemText primary={service.servicename}/>
-                                    <Typography component={'span'} sx={{marginRight:8}}>Price : {service.price}</Typography>
-                                </ListItem>
-                            ))}
-                        </List>
+                        ?<GridShowScanReportStatus apptDetail={patDetail}/>
                         :<Typography component={'span'}>No Services Selected</Typography>}
                 </AccordionDetails>
             </Accordion>

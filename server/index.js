@@ -213,6 +213,12 @@ async function getapptdetails(visitid){
                 `,
                 [visitid] 
             )
+            var reportStatus = await conn.query(
+                `SELECT vsl.visitid, vsl.serviceid, s.servicename, vsl.reportstatus, vsl.assignedto, vsl.reportdelta
+                 FROM visit_service_line AS vsl INNER JOIN services as s ON vsl.serviceid = s.serviceid
+                 WHERE vsl.visitid=?
+                `,[visitid]
+            )
             var discountDetail = await conn.query(
                 `SELECT d.discounterid, isl.discountpercent, s.serviceid, i.createdat 
                 FROM invoices AS i INNER JOIN invoice_service_line AS isl ON i.invoiceid = isl.invoiceid
@@ -229,6 +235,7 @@ async function getapptdetails(visitid){
             )
             result[0].discountDetail = discountDetail
             result[0].paymentDetail = paymentDetail
+            result[0].reportStatus = reportStatus
             resol(result)
         } catch (err) {
             console.log(err.message)
@@ -326,6 +333,10 @@ async function updateappointment(fields = null) {
                     [fields.sched_start, fields.sched_end, fields.visitid]
                 )
                 //for to be completed
+                await conn.query(
+                    `DELETE FROM invoice_service_line WHERE visitid=?`,
+                    [fields.visitid]
+                )
                 for(var selectedserviceid of fields.services){
                     //update service to visit_service_line
                     await conn.query(

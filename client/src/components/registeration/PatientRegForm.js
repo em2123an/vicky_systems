@@ -93,11 +93,13 @@ export default function PatientRegForm({selInv, serviceList, formik, curEvents, 
                                     'week' : 'Week',
                                     'list': 'Show All'
                                 }}
+                                titleFormat={{year:'numeric',month:'short',day:'numeric'}} 
                                 headerToolbar = {{
                                     left : 'title',
                                     //center : 'title',
                                     right : 'Day,today,prev,next'
                                 }}
+                                initialDate={curEvents.startStr?curEvents.startStr:curEvents.start&&curEvents.start}
                                 events={[...events, curEvents]}
                                 selectable = {true}
                                 select={(info)=>{

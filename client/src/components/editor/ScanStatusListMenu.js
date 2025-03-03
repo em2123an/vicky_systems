@@ -88,15 +88,14 @@ export default function ScanStatusListMenu({initialSelectedOption='scan_pending'
     <Box width={1} display={'flex'} flexDirection={'row'} justifyContent={'center'}>
       <List
         component="nav"
-        aria-label="Device settings"
         sx={{ width:'fit-content', bgcolor: 'background.paper'}}
       >
         <ListItemButton
-          id="lock-button"
+          id="scan-status-button"
           disableRipple
           aria-haspopup="listbox"
-          aria-controls="lock-menu"
-          aria-label="when device is locked"
+          aria-controls="scan-status-menu"
+          aria-label="when menu is clicked"
           aria-expanded={open ? 'true' : undefined}
           onClick={handleClickListItem}
         >
