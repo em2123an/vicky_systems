@@ -1,12 +1,12 @@
-import {List, ListItemText, ListItemButton, Menu, MenuItem, MenuList, Button, Typography, Box,Dialog, DialogContent, DialogActions, DialogTitle, CircularProgress} from '@mui/material';
+import {List, ListItemButton, Menu, MenuItem, Button, Typography, Box,Dialog, DialogActions, DialogTitle, CircularProgress} from '@mui/material';
 import { useEffect, useState } from 'react';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
+import { useMutation, useQueryClient} from "@tanstack/react-query"
 import axios from "axios"
 
 
-export default function ScanStatusListMenu({initialSelectedOption='scan_pending', selVisitid}) {
+export default function ScanStatusListMenu({initialSelectedOption='scan_pending', selVisitid, pendingOtherStatus=false}) {
   const options = [
     {val: 'scan_pending', title:'Scan Pending'},
     {val: 'scan_completed', title:'Scan Completed'},
@@ -30,8 +30,9 @@ export default function ScanStatusListMenu({initialSelectedOption='scan_pending'
             {headers:{"Content-Type":"application/x-www-form-urlencoded"}})
         ),
     onSuccess: ()=>{
-      setselectedOption(tempSelectedOption)  
-      queryClient.invalidateQueries({queryKey:['get_appointments']})
+      setselectedOption({...tempSelectedOption})  
+      queryClient.invalidateQueries({queryKey:['get_appointments']}) 
+      queryClient.invalidateQueries({queryKey:['patDetail']}) 
     }
   })
 
@@ -50,7 +51,7 @@ export default function ScanStatusListMenu({initialSelectedOption='scan_pending'
         handleClose()
       }
     }
-  },[openConfirmDialog,tempSelectedOption,confirmStatus])
+  },[openConfirmDialog,tempSelectedOption,confirmStatus,mutupdatescanstatus,selVisitid])
 
   const handleClickListItem = (event) => {
     setAnchorEl(event.currentTarget);
@@ -67,7 +68,7 @@ export default function ScanStatusListMenu({initialSelectedOption='scan_pending'
   const handleMenuItemClick = (event, index, option) => {
     if(selectedOption.val !== option.val){
       setOpenConfirmDialog(true)
-      setTempSelectedOption(option)
+      setTempSelectedOption({...option})
     }
     // if(handleStatusClick(option)){
     //     setselectedOption(option);
@@ -86,6 +87,7 @@ export default function ScanStatusListMenu({initialSelectedOption='scan_pending'
 
   return (
     <Box width={1} display={'flex'} flexDirection={'row'} justifyContent={'center'}>
+      {(mutupdatescanstatus.isPending || pendingOtherStatus)&&<CircularProgress size={'20'}/>}
       <List
         component="nav"
         sx={{ width:'fit-content', bgcolor: 'background.paper'}}
@@ -108,7 +110,6 @@ export default function ScanStatusListMenu({initialSelectedOption='scan_pending'
           <Box width={1} display={'flex'} flexDirection={'row'} justifyContent={'center'}>
             <Typography variant='body1' marginRight={1}>{selectedOption.title}</Typography>
             {open ? <ExpandLess /> : <ExpandMore />}
-            {mutupdatescanstatus.isPending&&<CircularProgress size={'20'}/>}
           </Box>
         </ListItemButton>
       </List>

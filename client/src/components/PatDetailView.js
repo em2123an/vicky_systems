@@ -1,25 +1,26 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate} from 'date-fns'
-import { DialogTitle, DialogActions, Card, CardContent, Accordion, AccordionDetails, AccordionSummary, Box, Button, Backdrop, CircularProgress, IconButton, List, ListItem, ListItemText, TextField, Toolbar, Typography, Modal, Dialog } from "@mui/material"
+import { DialogTitle, DialogActions, Card, CardContent, Accordion, AccordionDetails, AccordionSummary, 
+    Box, Button, Backdrop, CircularProgress, TextField, Toolbar, Typography, Modal, Dialog } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import WordEditorQuill from "./editor/WordEditorQuill";
 import { BasicGridAsTable,BasicGridBodyRow,BasicGridRowItem } from "./editor/BasicGridTable"
 import ScanStatusListMenu from "./editor/ScanStatusListMenu";
 import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
-import {useFormik} from 'formik'
-import { array, number, object, string } from 'yup'
 import axios from "axios"
 import EditAppointmentCal from "./EditAppointmentCal"
 import { purple } from "@mui/material/colors"
 
 export default function PatDetailView({oldPatDetail, setIsDetailViewing, serviceList, discounters,
-    selInv, setCurEvents, getAppts, setListSelectedServices
+    selInv, setCurEvents, getAppts, invSchedTypeList
 }){
     const [expanded, setExpanded] = useState('documentAcc')
-    const [openEditAppointmentModal, setOpenEditAppointmentModal] = useState(false)
+    const [openEditAppointment, setOpenEditAppointment] = useState(false)
     const [openReportCreatorWordEditorModal, setOpenReportCreatorWordEditorModal] = useState(false)
+    const [openWlSendModal, setOpenWlSendModal] = useState(false)
+    const [wlSendMode, setWlSendMode] = useState({})
     const [selResultForReporting, setSelResultForReporting] = useState({})
     const quillRef = useRef()
     const queryClient = useQueryClient()
@@ -97,6 +98,13 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
             }
         })
     }
+
+    const selectForPatDetail = useCallback((response)=>({
+        ...response.data[0],
+        services: selServiceGen(serviceList,response.data[0].serviceids),
+        paymentRecords: response.data[0].paymentDetail?response.data[0].paymentDetail:[],
+        discountRecords: response.data[0].discountDetail?getDiscountRecordsFromDetail(discounters, serviceList, response.data[0].discountDetail):[]
+    }),[selServiceGen,getDiscountRecordsFromDetail])
     //Get detail visit description; in mean time, use the old data
     //TODO: figure out how to use isError 
     const {isRefetching:isPatDetailLoading, isPending:isPatDetailLoadingFirst, isPlaceholderData, 
@@ -104,12 +112,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
             data:patDetail} = useQuery({
         queryKey: ['patDetail', oldPatDetail.visitid],
         queryFn: ()=>(axios.get(`http://localhost:8080/getapptdetails/${oldPatDetail.visitid}`)),
-        select: (response)=>({
-            ...response.data[0],
-            services: selServiceGen(serviceList,response.data[0].serviceids),
-            paymentRecords: response.data[0].paymentDetail?response.data[0].paymentDetail:[],
-            discountRecords: response.data[0].discountDetail?getDiscountRecordsFromDetail(discounters, serviceList, response.data[0].discountDetail):[]
-        }),
+        select: selectForPatDetail,
         placeholderData: (response)=>({data:[{
             ...oldPatDetail,
         }]}) 
@@ -166,6 +169,16 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
         mutationKey:['update_appointment'],
         mutationFn: (updatedapptdata)=>(
             axios.post('http://localhost:8080/updateappointment',updatedapptdata,{headers:{"Content-Type":"application/x-www-form-urlencoded"}})),
+        onSuccess: ()=>{
+            queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
+        }
+    })
+    
+    //mutation call to insert or update worklistorthanc the appointment
+    const mutinsertupdateworklistorthanc = useMutation({
+        mutationKey:['insert_update_worklist_orthanc'],
+        mutationFn: (insertupdateworklistorthanc)=>(
+            axios.post('http://localhost:8080/insertupdateworklistorthanc',insertupdateworklistorthanc,{headers:{"Content-Type":"application/x-www-form-urlencoded"}})),
         onSuccess: ()=>{
             queryClient.invalidateQueries({queryKey:['patDetail', oldPatDetail.visitid]})
         }
@@ -234,80 +247,9 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
     }
     //handle Edit appointment modal opening and closing
     function handleOnCloseEditAppt(){
-        setOpenEditAppointmentModal(false)
+        setOpenEditAppointment(false)
     }
-    const ageAsObject = getAgeAsObject(patDetail.dob)
-    const initialValues = {
-        firstname:patDetail.firstname,
-        lastname:patDetail.lastname,
-        sex:patDetail.sex,
-        //mobileno:patDetail.mobileno,
-        age_yrs:ageAsObject.age_yrs,
-        age_mns:ageAsObject.age_mns,
-        age_dys:ageAsObject.age_dys,
-        selservices : patDetail.services
-    }
-    //formik setup
-    const formik = useFormik({
-        initialValues :{...initialValues},
-        validationSchema : object({
-            firstname: string().required("Required"),
-            lastname: string().required("Required"),
-            sex: string().required("Required"),
-            mobileno: string().matches(new RegExp('^[0-9]+$')).required("Required"),
-            age_yrs: number().positive().integer().test((val, ctx)=>{
-                var {age_dys, age_mns} = ctx.parent
-                if(!(age_dys || age_mns)) return val!=null
-                return true
-            }),
-            age_mns: number().positive().integer().test((val, ctx)=>{
-                var {age_yrs, age_dys} = ctx.parent
-                if(!(age_yrs || age_dys)) return val!=null
-                return true
-            }),
-            age_dys: number().positive().integer().test((val, ctx)=>{
-                var {age_yrs, age_mns} = ctx.parent
-                if(!(age_yrs || age_mns)) return val!=null
-                return true
-            }),
-            selservices : array().min(1)
-        }),
-        validateOnChange : true,
-        })
-    function EditAppointmentModal (){
-        const invSchedTypeList = [
-            {title:'MRI', type:'cal', scannerIsReporter:false, reporttype:'duration'},
-            {title:'CT', type:'flow', scannerIsReporter:false, reporttype:'duration'},
-            {title:'X-RAY', type:'flow', scannerIsReporter:false, reporttype:'duration'},
-            {title:'ULTRASOUND', type:'flow', scannerIsReporter:true, reporttype:'point'},
-            {title:'ECHO', type:'flow', scannerIsReporter:true, reporttype:'point'},
-        ]
-        var localSelInv = {}
-        for (var inv of invSchedTypeList){
-            if(inv.title===patDetail.services[0].category){
-                localSelInv = inv
-                break
-            }
-        }
-        const localCurEvents = {
-            start: toDate(patDetail.scheduledatetime_start),
-            end : toDate(patDetail.scheduledatetime_end),
-            editable : true,
-            backgroundColor: purple[800],
-            borderColor: purple[800],
-            extendedProps: {
-                calView: localSelInv.type === 'cal'
-            },
-        }
-        return <><Modal open={openEditAppointmentModal} onClose={()=>{setOpenEditAppointmentModal(false)}}>
-            <Box sx={{p:2,boxShadow:24,bgcolor:'background.paper',position:'absolute', top:'2%', left:'5%'}}>
-                <EditAppointmentCal mutupdateappt={mutupdateappt} formik={formik} handleOnCloseEditAppt={handleOnCloseEditAppt}
-                    selInv={localSelInv} serviceList={serviceList} curEvents={localCurEvents} setCurEvents={setCurEvents}
-                    getAppts={getAppts} listSelectedServices={patDetail.services} visitId={patDetail.visitid} patientId={patDetail.patientid} 
-                    setListSelectedServices={setListSelectedServices}/>
-            </Box>
-        </Modal></>
-    }
+    
     const ReportCreatorWordEditorModal = ({handleSaveClick, result})=>{
         const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
 
@@ -381,42 +323,46 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
             }
         }
         return <>
-            {apptDetail.serviceids.map((selServiceid)=>{
-            for(var result of resultWithStatus){
+            {resultWithStatus.map((result)=>{
+                let reportApplier = ''
+                switch (result.reportstatus) {
+                    case 'report_pending':
+                        reportApplier = 'Create'
+                        break;
+                    case 'report_drafted':
+                        reportApplier = 'Edit'
+                        break;
+                    case 'report_verified':
+                        reportApplier = 'View'
+                        break;
+                    default:
+                        break;
+                }
+                return <>
+                    {(mutupdatereportstatus.isPending && 
+                        mutupdatereportstatus.variables.serviceid === result.serviceid && 
+                        mutupdatereportstatus.variables.visitid === result.visitid ) ?
+                        <Box>
+                            <CircularProgress size={20}/>
+                            <Typography variant="body1" color="primary">Uploading... </Typography>
+                            </Box> : 
+                        <Button variant={'text'}
+                        onClick={()=>{
+                            setSelResultForReporting(result)
+                            setOpenReportCreatorWordEditorModal(true)
+                        }}
+                        >{reportApplier} ({result.servicename})</Button> }
+                    
+                </>
+            })}
+            {/* {
+            apptDetail.serviceids.map((selServiceid)=>{
+            for(let result of resultWithStatus){
                 if(result.serviceid===selServiceid && result.visitid===apptDetail.visitid){
-                    var reportApplier = ''
-                    switch (result.reportstatus) {
-                        case 'report_pending':
-                            reportApplier = 'Create'
-                            break;
-                        case 'report_drafted':
-                            reportApplier = 'Edit'
-                            break;
-                        case 'report_verified':
-                            reportApplier = 'View'
-                            break;
-                        default:
-                            break;
-                    }
-                    return <>
-                        {(mutupdatereportstatus.isPending && 
-                            mutupdatereportstatus.variables.serviceid === result.serviceid && 
-                            mutupdatereportstatus.variables.visitid === result.visitid ) ?
-                            <Box>
-                                <CircularProgress size={20}/>
-                                <Typography variant="body1" color="primary">Uploading... </Typography>
-                                </Box> : 
-                            <Button variant={'text'}
-                            onClick={()=>{
-                                setSelResultForReporting(result)
-                                setOpenReportCreatorWordEditorModal(true)
-                            }}
-                            >{reportApplier} ({result.servicename})</Button> }
-                        
-                    </> 
+                     
                 }
             }
-        })}
+            })} */}
         <ReportCreatorWordEditorModal result={selResultForReporting} handleSaveClick={handleSaveClick}/>
         </>
     }
@@ -427,19 +373,89 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                 <BasicGridBodyRow>
                         <BasicGridRowItem><Card elevation={0}>
                             <CardContent>
-                                {apptDetail.servicenames&&apptDetail.servicenames.map((servicename)=>{
+                                {apptDetail.reportStatus?apptDetail.reportStatus.map((vsl)=>{
+                                    return <Box sx={{display:'flex', flexDirection:'row', justifyContent:'center'}}>
+                                        <Typography variant='body1' align="center" sx={{p:2}}>{vsl.servicename}</Typography>
+                                        {mutinsertupdateworklistorthanc.isPending && mutinsertupdateworklistorthanc.variables.vslid === vsl.visitserviceid?
+                                            <Box>
+                                                <CircularProgress size={20}/>
+                                                <Typography variant="body1" color="primary">Sending... </Typography>
+                                            </Box>:
+                                        parseInt(vsl.wlsend)?
+                                            <Button variant="text" color="success" onClick={()=>{
+                                                setOpenWlSendModal(true)
+                                                setWlSendMode({...apptDetail,vslid:vsl.visitserviceid, isupdate:true})
+                                            }}>sent</Button>:
+                                            <Button variant="text" color="error" onClick={()=>{
+                                                setOpenWlSendModal(true)
+                                                setWlSendMode({...apptDetail,vslid:vsl.visitserviceid, isupdate:false})
+                                            }}>not sent</Button>}
+                                    </Box>
+                                }):apptDetail.servicenames&&apptDetail.servicenames.map((servicename)=>{
                                     return <Typography variant='body1' align="center" sx={{p:1}}>{servicename}</Typography>
                                     })}
                             </CardContent>    
                             </Card></BasicGridRowItem>
                         <BasicGridRowItem>
-                            <ScanStatusListMenu initialSelectedOption={apptDetail.scanstatus} selVisitid={apptDetail.visitid}/>
+                            <ScanStatusListMenu initialSelectedOption={apptDetail.scanstatus} selVisitid={apptDetail.visitid} pendingOtherStatus={isPatDetailLoading}/>
                         </BasicGridRowItem> 
-                            <BasicGridRowItem>
+                        <BasicGridRowItem>
                             <ReportWithStatusButtonModal apptDetail={apptDetail} resultWithStatus={apptDetail.reportStatus?apptDetail.reportStatus:[]}/>
-                            </BasicGridRowItem>
-                    </BasicGridBodyRow>
+                        </BasicGridRowItem>
+                </BasicGridBodyRow>
+                <Dialog open={openWlSendModal} onClose={()=>{
+                    setOpenWlSendModal(false)
+                    setWlSendMode({})
+                    }}>
+                    <DialogTitle sx={{padding:4}}>Are you sure you want to {wlSendMode.isupdate?"Resend":"Send"}?</DialogTitle>
+                    <DialogActions>
+                        <Button autoFocus variant='contained' color={'success'} onClick={()=>{
+                            const wlsenddata = {...wlSendMode}
+                            mutinsertupdateworklistorthanc.mutate(wlsenddata)
+                            setWlSendMode({})
+                            setOpenWlSendModal(false)
+                            }}>Yes</Button>
+                        <Button variant='contained' color={'error'} onClick={()=>{
+                            setOpenWlSendModal(false)
+                            setWlSendMode({})
+                            }}>No</Button>
+                    </DialogActions>
+                </Dialog>
             </BasicGridAsTable>
+    }
+    if(openEditAppointment){
+        //Edit
+        const ageAsObject = getAgeAsObject(patDetail.dob)
+        const initialValues = {
+            firstname:patDetail.firstname,
+            lastname:patDetail.lastname,
+            sex:patDetail.sex,
+            mobileno:patDetail.phonenumber,
+            age_yrs:ageAsObject.age_yrs,
+            age_mns:ageAsObject.age_mns,
+            age_dys:ageAsObject.age_dys,
+            selservices : patDetail.services
+        }
+        var localSelInv = {}
+        for (var inv of invSchedTypeList){
+            if(inv.code===patDetail.services[0].category){
+                localSelInv = inv
+                break
+            }
+        }
+        const localCurEvents = {
+            start: toDate(patDetail.scheduledatetime_start),
+            end : toDate(patDetail.scheduledatetime_end),
+            editable : true,
+            backgroundColor: purple[800],
+            borderColor: purple[800],
+            extendedProps: {
+                calView: localSelInv.type === 'cal'
+            },
+        }
+        return <EditAppointmentCal initialValues={initialValues} mutupdateappt={mutupdateappt} handleOnCloseEditAppt={handleOnCloseEditAppt}
+        selInv={localSelInv} serviceList={serviceList} curEvents={localCurEvents} setCurEvents={setCurEvents}
+        getAppts={getAppts}  visitId={patDetail.visitid} patientId={patDetail.patientid}/>
     }
     //list of file uploaded to be displayed
     //TODO: query to get files or with optimistic updata
@@ -463,7 +479,7 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                     sx={{flexGrow:2}}
                     value={getAppointment(patDetail.scheduledatetime_start, patDetail.scheduledatetime_end)}/>
             }
-            <Button variant="contained" onClick={()=>{setOpenEditAppointmentModal(true)}}>Edit Appointment</Button>
+            <Button variant="contained" onClick={()=>{setOpenEditAppointment(true)}}>Edit Appointment</Button>
         </Box>
         <Box>
             {/* Accordion for service lists */}
@@ -516,12 +532,12 @@ export default function PatDetailView({oldPatDetail, setIsDetailViewing, service
                         handlePaymentRecords={handlePaymentRecords} handleDiscountRecords={handleDiscountRecords}/>
                     : <Box>
                         {/* figure out how to send error messages */}
+                        {/* TODO */}
                         <PatientRegPayment listSelectedServices={patDetail.services} paymentRecords={[]} discountRecords={[]}/>
                     </Box> 
                     }
                 </AccordionDetails>
             </Accordion>
         </Box>
-        <EditAppointmentModal/>
     </Box>
 }

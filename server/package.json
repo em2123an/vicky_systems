@@ -1,6 +1,7 @@
 {
   "name": "vicky_systems_server",
   "version": "1.0.0",
+  "type": "module",
   "description": "backend for vicky systems",
   "main": "index.js",
   "scripts": {
@@ -12,12 +13,16 @@
     "@dotenvx/dotenvx": "^1.32.1",
     "@tanstack/react-query": "^5.64.1",
     "@tanstack/react-query-devtools": "^5.64.1",
+    "axios": "^1.9.0",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "dcmjs": "^0.41.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "formidable": "^3.5.2",
     "mariadb": "^3.4.0",
-    "mysql": "^2.18.1"
+    "mysql": "^2.18.1",
+    "uuid": "^11.1.0"
   }
 }

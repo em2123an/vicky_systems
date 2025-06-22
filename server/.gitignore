@@ -7,6 +7,7 @@
 
 #folder for upload testing
 /fileuploads
+/temp_wl
 
 # testing
 /coverage

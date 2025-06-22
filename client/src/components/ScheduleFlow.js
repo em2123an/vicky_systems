@@ -1,8 +1,10 @@
-import { Typography, Paper, Card, Button, IconButton, CardContent, CardActions, Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, Accordion, AccordionSummary, AccordionDetails, Link, Modal, Dialog, DialogTitle, DialogActions, CircularProgress } from "@mui/material"
+import { Typography, Card, Button, CardContent, 
+    Box, Accordion, AccordionSummary, AccordionDetails, Link, 
+    Modal, Dialog, DialogTitle, DialogActions, CircularProgress } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { BasicGridAsTable, BasicGridBodyRow, BasicGridRowItem } from "./editor/BasicGridTable";
-import { useState, useCallback, useRef, useEffect } from "react";
-import {startOfToday, differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format, toDate, isSameDay} from 'date-fns'
+import { useState, useRef, useMemo, useCallback} from "react";
+import {startOfToday, differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, toDate, isSameDay} from 'date-fns'
 import ImageViewerModal from "./editor/ImageViewerModal";
 import ScanStatusListMenu from "./editor/ScanStatusListMenu";
 import {LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
@@ -11,7 +13,8 @@ import WordEditorQuill from "./editor/WordEditorQuill";
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query'
 import axios from 'axios'
 
-export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
+export default function ScheduleFlow({selInv, setCurEvents=()=>{}, 
+        setIsRegistering=()=>{}, setIsDetailViewing=()=>{}, appts_unfiltered=[]}) {
     const [expanded, setExpanded] = useState('scan_pending')
     const [selSchedDate, setSelSchedDate] = useState(startOfToday())
     const [openReportCreatorWordEditorModal, setOpenReportCreatorWordEditorModal] = useState(false)
@@ -20,6 +23,7 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
     const handleOpenImageRefer = useRef()
     const queryClient = useQueryClient()
 
+    const simpleSelectTransform = useCallback((response)=>(response.data),[])
     //get reports and status of report
     const {isPending: isResultWithStatusLoading, isError: isResultWithStatusError, 
         isSuccess: isResultWithStatusSuccess, data:resultWithStatus} = useQuery(
@@ -29,37 +33,41 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
                 selInv: selInv.title,
             }
         })),
-        select : (response)=>(response.data),
+        select : simpleSelectTransform,
         })
     
-    //filtering for the selected date without requiring a network
-    //TODO: check if it is better to make a API Call
-    var appts_pending = []
-    var appts_cancelled = []
-    var appts_incomplete = []
-    var appts_completed = []
-    appts_unfiltered.forEach((appts_unf)=>{
-        const appt = appts_unf.extendedProps
-        if(isSameDay(Date.parse(appt.createdat), selSchedDate)){
-            switch (appt.scanstatus) {
-                case 'scan_pending':
-                    appts_pending = [...appts_pending, appt]
-                    break;
-                case 'scan_completed':
-                    appts_completed = [...appts_completed, appt]
-                    break;
-                case 'scan_incomplete':
-                    appts_incomplete = [...appts_incomplete, appt]
-                    break;
-                case 'scan_cancelled':
-                    appts_cancelled = [...appts_cancelled, appt]
-                    break;
-                default:
-                    break;
+    const [appts_pending, appts_cancelled, appts_incomplete, appts_completed] = useMemo(()=>{
+        //filtering for the selected date without requiring a network
+        //TODO: check if it is better to make a API Call
+        let appts_pending = []
+        let appts_cancelled = []
+        let appts_incomplete = []
+        let appts_completed = []
+        appts_unfiltered.forEach((appts_unf)=>{
+            const appt = appts_unf.extendedProps
+            if(isSameDay(Date.parse(appt.createdat), selSchedDate)){
+                switch (appt.scanstatus) {
+                    case 'scan_pending':
+                        appts_pending.push(appt)
+                        break;
+                    case 'scan_completed':
+                        appts_completed.push(appt)
+                        break;
+                    case 'scan_incomplete':
+                        appts_incomplete.push(appt)
+                        break;
+                    case 'scan_cancelled':
+                        appts_cancelled.push(appt)
+                        break;
+                    default:
+                        break;
+                }
+                
             }
-            
-        }
-    })
+        })
+        return [appts_pending, appts_cancelled, appts_incomplete, appts_completed]
+    },[appts_unfiltered,selSchedDate])
+    
 
     
     // const appts = appts_unfiltered.map((appts_unf)=>{
@@ -114,7 +122,7 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
         const day = differenceInCalendarDays(Date.now(), Date.parse(dob)) 
         if (month <1) return `${day} D`
     }
-    function openNewPDFTab(isLocalLoad, filePath, file){
+    const openNewPDFTab= useCallback((isLocalLoad, filePath, file)=>{
         try {
             if(!isLocalLoad){
                 //filePath is base64encoded
@@ -129,11 +137,11 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
                 }
                 window.URL.revokeObjectURL(urlForFile)
             }
-        } catch (error) {
+        } catch (error) { 
             console.log(error)
             return
         }
-    }
+    },[])
     //for detail viewing if needed
     function handleDetailClick(info){
         //click on events - to - see detail views
@@ -141,6 +149,21 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
         setIsRegistering(false)
         setCurEvents({...info.event.extendedProps})
     }
+    const handleImageClick = useCallback((e)=>{
+        const imagePDFSrc = e.currentTarget.dataset.imagepdfsrc;
+        const handle =handleOpenImageRefer.current
+        handle(imagePDFSrc)
+    },[handleOpenImageRefer])
+
+    const handlePDFClick = useCallback((value)=>()=>{
+        openNewPDFTab(false,value.filePath, value.file)
+    },[openNewPDFTab])
+
+    const handlViewDetailClick = useCallback((apptDetail)=>()=>{
+        setIsRegistering(false)
+        setIsDetailViewing(true)
+        setCurEvents({...apptDetail})
+    },[setIsRegistering, setIsDetailViewing, setCurEvents])
 
     
     const ReportCreatorWordEditorModal = ({handleSaveClick, result})=>{
@@ -281,11 +304,7 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
                                             return <Typography variant='body1'>{servicename}</Typography>
                                         })}
                                         <Box sx={{display:'flex', flexDirection:'row', justifyContent:'center'}}>
-                                            <Button size="small" onClick={()=>{
-                                                    setIsRegistering(false)
-                                                    setIsDetailViewing(true)
-                                                    setCurEvents({...apptDetail})
-                                                }}>View Detail</Button>
+                                            <Button size="small" onClick={handlViewDetailClick(apptDetail)}>View Detail</Button>
                                         </Box>
                                 </CardContent>    
                             </Card></BasicGridRowItem>
@@ -295,16 +314,14 @@ export default function ScheduleFlow({selInv, setCurEvents=()=>{}, setIsRegister
                                 var imagePDFSrc = value.filePath?value.filePath:''
                                 return <>
                                     {value.mimetype.includes('application/pdf')?
-                                        <Link component={'button'} onClick={()=>{openNewPDFTab(false,value.filePath, value.file)}} rel='noopener noreferrer' target='_blank'>
+                                        <Link component={'button'} rel='noopener noreferrer' target='_blank'
+                                            onClick={handlePDFClick(value)}>
                                             View {value.documentUploadType}
                                         </Link>
                                         : value.mimetype.includes('image')?
                                         <>
-                                            <Button variant="text" 
-                                                onClick={()=>{
-                                                    const handle =handleOpenImageRefer.current
-                                                    handle(imagePDFSrc)
-                                                }}>
+                                            <Button variant="text" data-imagepdfsrc={imagePDFSrc}
+                                                onClick={handleImageClick}>
                                                 View {value.documentUploadType}</Button>
                                         </>:
                                         <Link rel='noopener noreferrer' target='_blank' href={''}>

@@ -1,4 +1,4 @@
-import {useState, useRef} from "react"
+import {useState, useRef, useCallback, useEffect} from "react"
 import SchedulerFront from "./SchedulerFront"
 import PatientRegForm from "./registeration/PatientRegForm"
 import PatientRegUploader from "./registeration/PatientRegUploader"
@@ -14,6 +14,7 @@ import axios from 'axios'
 import CustomAppbarDrawer from "./CustomAppbarDrawer"
 import VisitFront from "./VisitFront"
 import ReportingFront from "./ReportingFront"
+import ArchiveFront from "./ArchiveFront"
 
 export default function MainPlayground(){
     //main state hub
@@ -21,7 +22,6 @@ export default function MainPlayground(){
     const [isRegistering, setIsRegistering] = useState(false)
     const [isDetailViewing, setIsDetailViewing] = useState(false)
     const [activeStep, setActiveStep] = useState(0)
-    const [listSelectedServices, setListSelectedServices] = useState([])
     const [curEvents, setCurEvents] = useState()
     const [isSaving, setIsSaving] = useState(false)
     const [snackHandle, setSnackHandle] = useState({snackopen:false,snackmessage:''})
@@ -30,6 +30,16 @@ export default function MainPlayground(){
     const [discountRecords, setDiscountRecords] = useState([])
     const [selInv, setSelInv] = useState('CT')
     const queryClient = useQueryClient()
+
+    //later should be in network call
+    //or in setting format
+    const invSchedTypeList = [
+        {title:'MRI', code:'MR', type:'cal', scannerIsReporter:false, reporttype:'duration'},
+        {title:'CT', code:'CT', type:'flow', scannerIsReporter:false, reporttype:'duration'},
+        {title:'X-RAY', code:'DX',type:'flow', scannerIsReporter:false, reporttype:'duration'},
+        {title:'ULTRASOUND', code:'US', type:'flow', scannerIsReporter:true, reporttype:'point'},
+        {title:'ECHO', code:'EC', type:'flow', scannerIsReporter:true, reporttype:'point'},
+    ]
 
     //make title
     function makeTitle(firstname, lastname, servicenames){
@@ -43,12 +53,13 @@ export default function MainPlayground(){
     function resetForEnd(){
         setIsRegistering(false)
         formik.handleReset()
-        setListSelectedServices([])
         setFileUploaded([])
         setDiscountRecords([])
         setActiveStep(0)
         setPaymentRecords([])
     }
+
+    const simpleSelectTransform = useCallback((response)=>(response.data),[])
 
     //get services; set infinity for stay time; load on page load
     const {isPending: isServiceListLoading, isError: isServiceListError, 
@@ -56,7 +67,7 @@ export default function MainPlayground(){
         {queryKey:['get_services'], 
         queryFn: ()=>(axios.get('http://localhost:8080/getservicesdata')),
         gcTime : 'Infinity',
-        select : (response)=>(response.data),
+        select : simpleSelectTransform,
         })
     
     //get discounters; set infinity for stay time; load on page load
@@ -65,9 +76,21 @@ export default function MainPlayground(){
         {queryKey:['get_discounters'], 
         queryFn: ()=>(axios.get('http://localhost:8080/getdiscounters')),
         gcTime : 'Infinity',
-        select : (response)=>(response.data),
+        select : simpleSelectTransform,
         })
     
+    const selectForGetAppts = useCallback((response)=>{
+        //to prevent inifinite loop
+        //TODO:use value.servicenames to display services on title
+        return response.data.map((value)=>({
+                title : `${value.firstname} ${value.lastname}`, //call make title
+                start : value.scheduledatetime_start,
+                end: value.scheduledatetime_end,
+                backgroundColor: blue[800], 
+                borderColor:blue[800],
+                extendedProps : {...value}, 
+            }))
+    },[])
     //get all the appointments
     const {isPending: isGetApptsLoading,isError: isGetApptsError, isSuccess: isGetApptsSuccess, data:getAppts} = useQuery({
         queryKey:['get_appointments', selInv.title],
@@ -77,18 +100,7 @@ export default function MainPlayground(){
             }
         })),
         enabled : !!serviceList,
-        select: (response)=>{
-            //console.log(response.data)
-            //TODO:use value.servicenames to display services on title
-            return response.data.map((value)=>({
-                    title : `${value.firstname} ${value.lastname}`, //call make title
-                    start : value.scheduledatetime_start,
-                    end: value.scheduledatetime_end,
-                    backgroundColor: blue[800], 
-                    borderColor:blue[800],
-                    extendedProps : {...value} 
-                }))
-        }
+        select: selectForGetAppts,
     })
     //mutation call to upload files
     const mutupload = useMutation({
@@ -102,6 +114,15 @@ export default function MainPlayground(){
         }
     })
 
+    //if service or get appoint error
+    useEffect(()=>{
+        if(isServiceListError || isGetApptsError){
+            setSnackHandle((prev)=>({...prev,snackopen:true, snackmessage:"Network Error"}))
+        } else {
+            setSnackHandle((prev)=>({...prev,snackopen:false,snackmessage:''}))
+        }
+    },[setSnackHandle, isServiceListError, isGetApptsError])
+    
     const steps =['Booking Information', 'Necessary Documents', 'Payment Details']
     
     const isSaveExit = useRef(false)//used to saveExit or to go to next step
@@ -123,8 +144,8 @@ export default function MainPlayground(){
             sex: formik.values.sex,
             mobileno : formik.values.mobileno,
             dob : format(resultdate,'yyyy-MM-dd'),
-            services : listSelectedServices.map((ser)=>(ser.serviceid)),
-            sched_start : curEvents.start?format(curEvents.start,'yyyy-MM-dd HH:mm:ss'):null,
+            services : formik.values.selservices.map((ser)=>(ser.serviceid)),
+            sched_start : curEvents.start?format(curEvents.start,'yyyy-MM-dd HH:mm:ss'):format(Date.now(),'yyyy-MM-dd HH:mm:ss'),
             sched_end : curEvents.end?format(curEvents.end,'yyyy-MM-dd HH:mm:ss'):null,
             paymentRecords: paymentRecords,
             discountRecords: discountRecords.map((discountRecord)=>({
@@ -271,7 +292,8 @@ export default function MainPlayground(){
 
     //if fails to service list on first load; fails to get appointments
     if(isServiceListError || isGetApptsError){
-        setSnackHandle((prev)=>({...prev,snackopen:true, snackmessage:"Network Error"}))
+        //cause infinite loop if we directly call it without useEffect
+        //setSnackHandle((prev)=>({...prev,snackopen:true, snackmessage:"Network Error"}))
         return (<>
             {/* to show error message and empty schedule */}
                     <Snackbar
@@ -281,7 +303,9 @@ export default function MainPlayground(){
                         onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
                         message={snackHandle.snackmessage}
                      />
-                    <SchedulerFront events={isGetApptsError ? [] : getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
+                    <SchedulerFront events={isGetApptsError ? [] : getAppts} setIsRegistering={setIsRegistering} 
+                    setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}
+                    invSchedTypeList={invSchedTypeList}/>
         </>)
     }
 
@@ -314,13 +338,12 @@ export default function MainPlayground(){
                     {activeStep===0 ? 
                             <PatientRegForm selInv={selInv} serviceList={serviceList} curEvents={curEvents} setCurEvents={setCurEvents} 
                                 formik={formik} isRegistering={isRegistering} setIsRegistering={setIsRegistering} 
-                                events={getAppts} 
-                                listSelectedServices={listSelectedServices} setListSelectedServices={setListSelectedServices}/>
+                                events={getAppts}/>
                         : activeStep ===1 ?
                             <PatientRegUploader handleUploadClick={handleUploadClick} handleFileDeleteClick={handleFileDeleteClick}
                                 fileUploaded={fileUploaded}/>
                         : <PatientRegPayment 
-                                listSelectedServices={listSelectedServices} discounters={discounters} 
+                                listSelectedServices={formik.values.selservices} discounters={discounters} 
                                 paymentRecords={paymentRecords} handlePaymentRecords={handlePaymentRecords}
                                 discountRecords={discountRecords} handleDiscountRecords={handleDiscountRecords}
                             />
@@ -329,7 +352,7 @@ export default function MainPlayground(){
                         <Button variant='contained' onClick={(event)=>{
                             if(activeStep===0){
                                 formik.handleSubmit(event)
-                            }else{
+                            }else if(activeStep < steps.length){
                                 setActiveStep((prev)=>(prev+1))
                             }
                             if((activeStep+1)===steps.length){
@@ -363,8 +386,8 @@ export default function MainPlayground(){
         return <>
                 <PatDetailView discounters={discounters} oldPatDetail={curEvents} 
                 setIsDetailViewing={setIsDetailViewing} serviceList={serviceList}
-                selInv={selInv} setCurEvents={setCurEvents} 
-                getAppts={getAppts} setListSelectedServices={setListSelectedServices}/>
+                selInv={selInv} setCurEvents={setCurEvents} invSchedTypeList={invSchedTypeList}
+                getAppts={getAppts}/>
             </>
     }
 
@@ -393,7 +416,7 @@ export default function MainPlayground(){
                         <SchedulerFront selInv={selInv} setSelInv={setSelInv} 
                             setSelCurOnView={setSelCurOnView} appts={getAppts} 
                             setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} 
-                            setCurEvents={setCurEvents}/>
+                            setCurEvents={setCurEvents} invSchedTypeList={invSchedTypeList}/>
                     </>
             break;
         case 'Visit':
@@ -405,6 +428,25 @@ export default function MainPlayground(){
             </CustomAppbarDrawer>
             break;
         case 'Archive':
+            return <CustomAppbarDrawer setSelCurOnView={setSelCurOnView}>
+                <Box sx={{flexGrow:2, paddingTop:2}} component={'main'}>
+                    <Toolbar/>
+                    <Button onClick={()=>{
+                        const helpURI = '$dicom:rs --url "https://localhost:8042/wado" -r "studyUID=1.2.276.0.7230010.3.1.2.3324896246.9088.1741985140.468"'
+                        const helpURL = encodeURIComponent(helpURI)
+                        const helpWeasisURL = `weasis://${helpURL}`
+                        const weasisURL = 'weasis://viewer?dicomWebURL=localhost:8042/wado?requestType=WADO&studyUID=1.2.276.0.7230010.3.1.2.3324896246.9088.1741985140.468'
+                        const dicomweb = "http://localhost:8042/dicom-web"
+                        const studyUID = "1.2.276.0.7230010.3.1.2.3324896246.9088.1741985140.468"
+                        const authHeader = "Authorization: Basic" + btoa("orthanc:orthanc");
+                        const weasisCommand = `$dicom:rs --url "${dicomweb}" -r "studyUID=${studyUID}"`
+                        const trialWeasis = `weasis://?${encodeURIComponent(weasisCommand)}`
+                        window.open(trialWeasis)
+                        //window.location.href = trialWeasis;
+                    }}>Weasis Opener</Button>
+                    <ArchiveFront/>
+                </Box>
+            </CustomAppbarDrawer>
             break;
         case 'Scan-Worklist':
             break;
@@ -430,7 +472,7 @@ export default function MainPlayground(){
                     <ReportingFront selInv={selInv} setSelInv={setSelInv} 
                                 setSelCurOnView={setSelCurOnView} appts={getAppts} 
                                 setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} 
-                                setCurEvents={setCurEvents}/>
+                                setCurEvents={setCurEvents} invSchedTypeList={invSchedTypeList}/>
             </>
             break;
         default:
@@ -457,7 +499,10 @@ export default function MainPlayground(){
                     onClose={()=>setSnackHandle((prev)=>({...prev,snackopen:false}))}
                     message={snackHandle.snackmessage}
                     />
-                <SchedulerFront selInv={selInv} setSelInv={setSelInv} setSelCurOnView={setSelCurOnView} appts={getAppts} setIsRegistering={setIsRegistering} setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}/>
+                <SchedulerFront selInv={selInv} setSelInv={setSelInv} setSelCurOnView={setSelCurOnView} 
+                appts={getAppts} setIsRegistering={setIsRegistering} 
+                setIsDetailViewing={setIsDetailViewing} setCurEvents={setCurEvents}
+                invSchedTypeList={invSchedTypeList}/>
             </>
         </>
     )

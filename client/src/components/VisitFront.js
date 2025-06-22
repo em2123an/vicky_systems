@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Box, Button, Card, CardActions, CardContent, CircularProgress, Icon, IconButton, InputAdornment, List, ListItem, ListItemText, Pagination, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalendarDays, format} from 'date-fns'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -43,6 +43,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
         return `${start} - ${end}`
     }
     
+    const simpleSelectTransform = (response)=>(response.data)
     const {isLoading: isSearchResultsLoading, isError: isSearchResultsError, 
         isSuccess: isSearchResultsSuccess, data:searchResults, refetch:getResults} = useQuery(
         {queryKey:['get_search_results',...lastRunKeyState], 
@@ -55,7 +56,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
             }
         })),
         enabled: allowSearch,
-        select : (response)=>(response.data),
+        select : simpleSelectTransform,
         })
     //handle when search button is pressed
     function handleSearchAction (){
@@ -63,11 +64,16 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
         setLastRunKeyState([patientNameQuery,patientIdQuery,visitIdQuery,curPage])
         //getResults()
     }
-    //handle when view more is clicked for the visit
-    function handleViewPatDetail(patDetail){
+
+    const handleViewPatDetail = useCallback((patDetail)=>()=>{
         setIsDetailViewing(true)
         setCurEvents({...patDetail})
-    }
+    },[setIsDetailViewing, setCurEvents])
+    //handle when view more is clicked for the visit
+    // function handleViewPatDetail(patDetail){
+    //     setIsDetailViewing(true)
+    //     setCurEvents({...patDetail})
+    // }
     
 
     return <Paper sx={{height:'100%', minHeight:'100vh'}}>
@@ -160,7 +166,7 @@ export default function VisitFront({setIsDetailViewing,setCurEvents}) {
                                                     <Typography variant="body2" sx={{color:'text.secondary'}}>Visit Id: {searchResult.visitid}</Typography>
                                                 </CardContent>
                                                 <CardActions>
-                                                    <Button size="small" onClick={()=>{handleViewPatDetail(searchResult)}}>View Detail</Button>
+                                                    <Button size="small" onClick={handleViewPatDetail(searchResult)}>View Detail</Button>
                                                 </CardActions>
                                             </Card></TableCell>
                                         <TableCell padding="none" sx={{boxShadow:1}}>

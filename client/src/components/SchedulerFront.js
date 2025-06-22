@@ -1,22 +1,16 @@
-import { Drawer, List, ListItemButton, ListItemText, Toolbar, ListItem, Box, ToggleButton } from "@mui/material"
+import { Drawer, List, ListItemText, Toolbar, ListItem, Box, ToggleButton } from "@mui/material"
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import ScheduleCal from './ScheduleCal'
 import ScheduleFlow from './ScheduleFlow'
 import CustomAppbarDrawer from "./CustomAppbarDrawer"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 
-export default function SchedulerFront({selInv, setSelInv, setSelCurOnView, setIsRegistering, setIsDetailViewing, appts, setCurEvents}){
-    const invSchedTypeList = [
-        {title:'MRI', type:'cal', scannerIsReporter:false, reporttype:'duration'},
-        {title:'CT', type:'flow', scannerIsReporter:false, reporttype:'duration'},
-        {title:'X-RAY', type:'flow', scannerIsReporter:false, reporttype:'duration'},
-        {title:'ULTRASOUND', type:'flow', scannerIsReporter:true, reporttype:'point'},
-        {title:'ECHO', type:'flow', scannerIsReporter:true, reporttype:'point'},
-    ]
+export default function SchedulerFront({selInv, setSelInv, setSelCurOnView, 
+    setIsRegistering, setIsDetailViewing, appts, setCurEvents,invSchedTypeList}){
 
     useEffect(()=>{
         if(!(selInv.title))setSelInv(invSchedTypeList[1])
-    },[selInv, selInv.title, invSchedTypeList])
+    },[selInv, selInv.title, invSchedTypeList, setSelInv])
 
     return <CustomAppbarDrawer setSelCurOnView={setSelCurOnView}>
                 <Drawer variant="permanent" aria-label="permanent-nav-inv-list" 
