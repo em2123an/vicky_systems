@@ -13,6 +13,7 @@ import dotenv from 'dotenv'
 import {format} from 'date-fns'
 import child_process from 'child_process'
 import util from 'util'
+import usersmodule from './usersmodule'
 
 // const express = require('express')
 // const cors = require('cors')
@@ -42,12 +43,8 @@ const ORTHANC_URL = 'http://localhost:8042'
 const ORTHANC_AUTH = {username:'orthanc', password:'orthanc'}
 const ORTHANC_WORKLIST_PATH = 'C:/Orthanc/worklistmanager'
 //dcmjs setup
-const {DicomMetaDictionary, DicomDict, DicomMessage, WriteBufferStream} =dcmjs.data
+const {DicomMetaDictionary} =dcmjs.data
 const IMPLEMENTATIONCLASSUID = '2.25.245209499699657654870212694517754631679' //should be replaced with official UID
-
-//request parsers
-const jsonParser = bodyParser.json()
-const urlencodedParser = bodyParser.urlencoded({extended:false})
 
 //create a pool of connections
 const pool = mariadb.createPool({
@@ -1111,6 +1108,7 @@ async function updatereportstatus(fields = null) {
 }
 
 //list of APIs
+app.use('/user',usersmodule)//api from users module 
 app.get('/getservicesdata',(req,res,next)=>{
     getservicesdata().then((result)=>{
         res.status(200).send(result).end()

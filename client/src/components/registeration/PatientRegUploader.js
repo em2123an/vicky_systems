@@ -5,7 +5,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import {useCallback, useState} from 'react'
 import {format, toDate} from 'date-fns'
 import {TransformWrapper,TransformComponent, useControls} from 'react-zoom-pan-pinch'
-import ScreeningHistory from '../editor/ScreeningHistory'
+import ScreeningHistory from '../minicomponents/ScreeningHistory'
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
 import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded';
 import CenterFocusWeakRoundedIcon from '@mui/icons-material/CenterFocusWeakRounded';

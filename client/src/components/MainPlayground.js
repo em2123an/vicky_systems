@@ -1,5 +1,5 @@
 import {useState, useRef, useCallback, useEffect} from "react"
-import SchedulerFront from "./SchedulerFront"
+import SchedulerFront from "./scheduler/SchedulerFront"
 import PatientRegForm from "./registeration/PatientRegForm"
 import PatientRegUploader from "./registeration/PatientRegUploader"
 import PatientRegPayment from "./registeration/PatientRegPayment"
@@ -11,10 +11,10 @@ import { array, number, object, string } from 'yup'
 import {format, sub} from 'date-fns'
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query'
 import axios from 'axios'
-import CustomAppbarDrawer from "./CustomAppbarDrawer"
-import VisitFront from "./VisitFront"
-import ReportingFront from "./ReportingFront"
-import ArchiveFront from "./ArchiveFront"
+import CustomAppbarDrawer from "./minicomponents/CustomAppbarDrawer"
+import VisitFront from "./visits/VisitFront"
+import ReportingFront from "./reporting/ReportingFront"
+import ArchiveFront from "./Archive/ArchiveFront"
 
 export default function MainPlayground(){
     //main state hub

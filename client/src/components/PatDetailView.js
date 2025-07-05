@@ -5,12 +5,12 @@ import {differenceInCalendarYears, differenceInCalendarMonths, differenceInCalen
 import { DialogTitle, DialogActions, Card, CardContent, Accordion, AccordionDetails, AccordionSummary, 
     Box, Button, Backdrop, CircularProgress, TextField, Toolbar, Typography, Modal, Dialog } from "@mui/material"
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import WordEditorQuill from "./editor/WordEditorQuill";
-import { BasicGridAsTable,BasicGridBodyRow,BasicGridRowItem } from "./editor/BasicGridTable"
-import ScanStatusListMenu from "./editor/ScanStatusListMenu";
+import WordEditorQuill from "./minicomponents/WordEditorQuill";
+import { BasicGridAsTable,BasicGridBodyRow,BasicGridRowItem } from "./minicomponents/BasicGridTable"
+import ScanStatusListMenu from "./minicomponents/ScanStatusListMenu";
 import { useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
 import axios from "axios"
-import EditAppointmentCal from "./EditAppointmentCal"
+import EditAppointmentCal from "./minicomponents/EditAppointmentCal"
 import { purple } from "@mui/material/colors"
 
 export default function PatDetailView({oldPatDetail, setIsDetailViewing, serviceList, discounters,
